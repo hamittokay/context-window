@@ -1,6 +1,6 @@
 # context-window Documentation
 
-This directory contains the documentation for **context-window**, a production-grade RAG (Retrieval-Augmented Generation) library with OpenAI embeddings and Pinecone vector storage.
+This directory contains the documentation for **context-window**, an experimental RAG (Retrieval-Augmented Generation) library with OpenAI embeddings and Pinecone vector storage.
 
 ## Documentation Structure
 
