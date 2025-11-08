@@ -108,6 +108,7 @@ PINECONE_ENVIRONMENT=us-east-1
 
 ### 2. Use the library
 
+**ESM (ES Modules):**
 ```typescript
 import { createContextWindow } from "context-window";
 
@@ -121,6 +122,24 @@ const cw = await createContextWindow({
 const { text, sources } = await cw.ask("When was America founded?");
 console.log(text);     // "America was founded in 1776..."
 console.log(sources);  // ["my-book.pdf"]
+```
+
+**CommonJS:**
+```javascript
+const { createContextWindow } = require("context-window");
+
+(async () => {
+  const cw = await createContextWindow({
+    indexName: "my-book",
+    data: ["./my-book.pdf"],
+    ai: { provider: "openai", model: "gpt-4o-mini" },
+    vectorStore: { provider: "pinecone" }
+  });
+
+  const { text, sources } = await cw.ask("When was America founded?");
+  console.log(text);     // "America was founded in 1776..."
+  console.log(sources);  // ["my-book.pdf"]
+})();
 ```
 
 That's it! Three steps: configure, create, ask.
