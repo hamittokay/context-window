@@ -25,7 +25,7 @@ function normalizeOptions(opts: CreateContextWindowOptions): NormalizedOptions {
   const maxContextChars = opts.limits?.maxContextChars || 8000;
   const scoreThreshold = opts.limits?.scoreThreshold || 0;
 
-  if (!opts.namespace) {
+  if (!namespace) {
     throw new Error("namespace is required");
   }
 
@@ -34,7 +34,7 @@ function normalizeOptions(opts: CreateContextWindowOptions): NormalizedOptions {
   }
 
   return {
-    namespace: opts.namespace,
+    namespace,
     dataPaths,
     aiModel,
     chunkSize,
