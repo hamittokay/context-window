@@ -1,0 +1,656 @@
+---
+title: 'Utility Functions'
+description: 'Helper functions for managing the context window registry'
+---
+
+## Overview
+
+context-window provides utility functions to manage context windows in the global registry. These work alongside [`createCtxWindow()`](/api-reference/create-ctx-window) and [`getCtxWindow()`](/api-reference/get-ctx-window).
+
+<Note>
+  These functions only affect the in-memory registry, not your Pinecone data.
+</Note>
+
+## hasCtxWindow
+
+Check if a context window exists in the registry.
+
+### Signature
+
+```typescript
+function hasCtxWindow(indexName: string): boolean
+```
+
+### Parameters
+
+<ParamField path="indexName" type="string" required>
+  The index name to check for
+</ParamField>
+
+### Returns
+
+`true` if a context window with the given name exists, `false` otherwise.
+
+### Examples
+
+```typescript
+import { hasCtxWindow, createCtxWindow, getCtxWindow } from "context-window";
+
+// Check before creating
+if (!hasCtxWindow("docs")) {
+  await createCtxWindow({
+    indexName: "docs",
+    data: ["./documentation"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+}
+
+// Check before retrieving
+if (hasCtxWindow("docs")) {
+  const cw = getCtxWindow("docs");
+  const result = await cw.ask("Your question");
+} else {
+  console.error("Context window not initialized");
+}
+```
+
+### Use Cases
+
+**Conditional Initialization**:
+```typescript
+async function ensureContextWindow(name: string, dataPath: string) {
+  if (!hasCtxWindow(name)) {
+    console.log(`Initializing ${name}...`);
+    await createCtxWindow({
+      indexName: name,
+      data: [dataPath],
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+  }
+  return getCtxWindow(name);
+}
+```
+
+**Safe Retrieval**:
+```typescript
+function safeGetCtxWindow(name: string) {
+  if (!hasCtxWindow(name)) {
+    throw new Error(`Context window '${name}' not initialized`);
+  }
+  return getCtxWindow(name);
+}
+```
+
+---
+
+## deleteCtxWindow
+
+Remove a context window from the registry.
+
+### Signature
+
+```typescript
+function deleteCtxWindow(indexName: string): boolean
+```
+
+### Parameters
+
+<ParamField path="indexName" type="string" required>
+  The index name of the context window to remove
+</ParamField>
+
+### Returns
+
+`true` if the context window was deleted, `false` if it didn't exist.
+
+### Examples
+
+```typescript
+import { deleteCtxWindow, hasCtxWindow } from "context-window";
+
+// Delete a specific context window
+deleteCtxWindow("temporary-docs");
+
+// Check if deletion was successful
+if (!hasCtxWindow("temporary-docs")) {
+  console.log("Successfully deleted");
+}
+
+// Delete with confirmation
+if (hasCtxWindow("old-docs")) {
+  const deleted = deleteCtxWindow("old-docs");
+  console.log(deleted ? "Deleted" : "Not found");
+}
+```
+
+### Use Cases
+
+**Cleanup After Use**:
+```typescript
+async function processTemporaryDocs() {
+  // Create temporary context window
+  await createCtxWindow({
+    indexName: "temp-analysis",
+    data: ["./temp"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+
+  try {
+    const cw = getCtxWindow("temp-analysis");
+    const result = await cw.ask("Analyze this");
+    return result;
+  } finally {
+    // Clean up registry
+    deleteCtxWindow("temp-analysis");
+  }
+}
+```
+
+**Session Management**:
+```typescript
+class SessionManager {
+  async createUserSession(userId: string, documents: string[]) {
+    const indexName = `session-${userId}`;
+    await createCtxWindow({
+      indexName,
+      data: documents,
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+  }
+
+  endUserSession(userId: string) {
+    const indexName = `session-${userId}`;
+    deleteCtxWindow(indexName);
+  }
+}
+```
+
+<Warning>
+  `deleteCtxWindow()` only removes the reference from the in-memory registry. It does NOT delete data from Pinecone.
+</Warning>
+
+---
+
+## clearCtxWindows
+
+Remove all context windows from the registry.
+
+### Signature
+
+```typescript
+function clearCtxWindows(): void
+```
+
+### Parameters
+
+None
+
+### Returns
+
+`void`
+
+### Examples
+
+```typescript
+import { clearCtxWindows, listCtxWindows } from "context-window";
+
+// Clear all context windows
+clearCtxWindows();
+
+// Verify all cleared
+console.log(listCtxWindows()); // []
+
+// Use in cleanup
+process.on("SIGINT", () => {
+  console.log("Cleaning up...");
+  clearCtxWindows();
+  process.exit(0);
+});
+```
+
+### Use Cases
+
+**Application Shutdown**:
+```typescript
+async function gracefulShutdown() {
+  console.log("Shutting down...");
+  clearCtxWindows();
+  await closeDatabase();
+  process.exit(0);
+}
+
+process.on("SIGTERM", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);
+```
+
+**Test Cleanup**:
+```typescript
+import { describe, it, beforeEach, afterEach } from "vitest";
+import { createCtxWindow, clearCtxWindows } from "context-window";
+
+describe("Context Window Tests", () => {
+  afterEach(() => {
+    // Clean up after each test
+    clearCtxWindows();
+  });
+
+  it("should answer questions", async () => {
+    await createCtxWindow({
+      indexName: "test-docs",
+      data: ["./test-data"],
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+    // ... test code
+  });
+});
+```
+
+**Reset Application State**:
+```typescript
+async function resetApplication() {
+  // Clear all context windows
+  clearCtxWindows();
+
+  // Reinitialize with fresh data
+  await initializeContextWindows();
+}
+```
+
+<Warning>
+  Like `deleteCtxWindow()`, this only clears the in-memory registry. Pinecone data remains untouched.
+</Warning>
+
+---
+
+## listCtxWindows
+
+Get a list of all registered context window names.
+
+### Signature
+
+```typescript
+function listCtxWindows(): string[]
+```
+
+### Parameters
+
+None
+
+### Returns
+
+Array of index names for all registered context windows.
+
+### Examples
+
+```typescript
+import { listCtxWindows, createCtxWindow } from "context-window";
+
+// Create some context windows
+await createCtxWindow({
+  indexName: "user-docs",
+  data: ["./docs/users"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+await createCtxWindow({
+  indexName: "admin-docs",
+  data: ["./docs/admin"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// List all context windows
+const windows = listCtxWindows();
+console.log(windows); // ["user-docs", "admin-docs"]
+```
+
+### Use Cases
+
+**Status Endpoint**:
+```typescript
+import express from "express";
+import { listCtxWindows, hasCtxWindow } from "context-window";
+
+const app = express();
+
+app.get("/api/status", (req, res) => {
+  const windows = listCtxWindows();
+  res.json({
+    contextWindows: windows,
+    count: windows.length,
+    ready: windows.length > 0
+  });
+});
+```
+
+**Debug Information**:
+```typescript
+function debugContextWindows() {
+  const windows = listCtxWindows();
+  console.log("=== Context Window Registry ===");
+  console.log(`Total: ${windows.length}`);
+  windows.forEach(name => {
+    console.log(`- ${name}`);
+  });
+  console.log("==============================");
+}
+```
+
+**Validation**:
+```typescript
+function validateRequiredContextWindows() {
+  const required = ["user-docs", "api-docs", "support-docs"];
+  const existing = listCtxWindows();
+
+  const missing = required.filter(name => !existing.includes(name));
+
+  if (missing.length > 0) {
+    throw new Error(`Missing context windows: ${missing.join(", ")}`);
+  }
+}
+```
+
+**Bulk Operations**:
+```typescript
+async function askAllContextWindows(question: string) {
+  const windows = listCtxWindows();
+
+  const results = await Promise.all(
+    windows.map(async (name) => {
+      const cw = getCtxWindow(name);
+      const result = await cw.ask(question);
+      return { name, ...result };
+    })
+  );
+
+  return results;
+}
+```
+
+---
+
+## Complete Examples
+
+### Application Health Check
+
+```typescript
+import { listCtxWindows, hasCtxWindow } from "context-window";
+
+interface HealthCheck {
+  status: "healthy" | "degraded" | "unhealthy";
+  contextWindows: {
+    total: number;
+    names: string[];
+    missing: string[];
+  };
+}
+
+function healthCheck(): HealthCheck {
+  const required = ["main-docs", "api-docs", "support"];
+  const existing = listCtxWindows();
+  const missing = required.filter(name => !hasCtxWindow(name));
+
+  let status: HealthCheck["status"];
+  if (missing.length === 0) {
+    status = "healthy";
+  } else if (missing.length < required.length) {
+    status = "degraded";
+  } else {
+    status = "unhealthy";
+  }
+
+  return {
+    status,
+    contextWindows: {
+      total: existing.length,
+      names: existing,
+      missing
+    }
+  };
+}
+```
+
+### Session-Based Context Windows
+
+```typescript
+import {
+  createCtxWindow,
+  getCtxWindow,
+  deleteCtxWindow,
+  hasCtxWindow
+} from "context-window";
+
+class UserSessionManager {
+  async createSession(userId: string, documents: string[]) {
+    const sessionId = `user-${userId}-${Date.now()}`;
+
+    if (hasCtxWindow(sessionId)) {
+      throw new Error("Session already exists");
+    }
+
+    await createCtxWindow({
+      indexName: sessionId,
+      data: documents,
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+
+    return sessionId;
+  }
+
+  async askQuestion(sessionId: string, question: string) {
+    if (!hasCtxWindow(sessionId)) {
+      throw new Error("Session not found or expired");
+    }
+
+    const cw = getCtxWindow(sessionId);
+    return await cw.ask(question);
+  }
+
+  endSession(sessionId: string) {
+    return deleteCtxWindow(sessionId);
+  }
+
+  cleanupOldSessions(maxAge: number) {
+    const now = Date.now();
+    const sessions = listCtxWindows().filter(name =>
+      name.startsWith("user-")
+    );
+
+    sessions.forEach(sessionId => {
+      const timestamp = parseInt(sessionId.split("-").pop() || "0");
+      if (now - timestamp > maxAge) {
+        deleteCtxWindow(sessionId);
+        console.log(`Cleaned up old session: ${sessionId}`);
+      }
+    });
+  }
+}
+```
+
+### Multi-Tenant Application
+
+```typescript
+import {
+  createCtxWindow,
+  getCtxWindow,
+  hasCtxWindow,
+  listCtxWindows
+} from "context-window";
+
+class TenantManager {
+  private prefix = "tenant-";
+
+  async initializeTenant(tenantId: string, documents: string[]) {
+    const indexName = `${this.prefix}${tenantId}`;
+
+    if (hasCtxWindow(indexName)) {
+      console.log(`Tenant ${tenantId} already initialized`);
+      return;
+    }
+
+    await createCtxWindow({
+      indexName,
+      data: documents,
+      ai: { provider: "openai" },
+      vectorStore: {
+        provider: "pinecone",
+        namespace: `tenant-${tenantId}`
+      }
+    });
+  }
+
+  getTenantContextWindow(tenantId: string) {
+    const indexName = `${this.prefix}${tenantId}`;
+
+    if (!hasCtxWindow(indexName)) {
+      throw new Error(`Tenant ${tenantId} not initialized`);
+    }
+
+    return getCtxWindow(indexName);
+  }
+
+  listTenants(): string[] {
+    return listCtxWindows()
+      .filter(name => name.startsWith(this.prefix))
+      .map(name => name.replace(this.prefix, ""));
+  }
+
+  async askTenant(tenantId: string, question: string) {
+    const cw = this.getTenantContextWindow(tenantId);
+    return await cw.ask(question);
+  }
+}
+```
+
+### Development vs Production
+
+```typescript
+import {
+  createCtxWindow,
+  clearCtxWindows,
+  listCtxWindows
+} from "context-window";
+
+async function initializeEnvironment() {
+  const env = process.env.NODE_ENV || "development";
+
+  // Clear any existing context windows
+  clearCtxWindows();
+
+  if (env === "production") {
+    await createCtxWindow({
+      indexName: "prod-docs",
+      data: ["./docs/production"],
+      ai: { provider: "openai", model: "gpt-4o" },
+      vectorStore: {
+        provider: "pinecone",
+        namespace: "production"
+      }
+    });
+  } else {
+    await createCtxWindow({
+      indexName: "dev-docs",
+      data: ["./docs/development"],
+      ai: { provider: "openai", model: "gpt-4o-mini" },
+      vectorStore: {
+        provider: "pinecone",
+        namespace: "development"
+      }
+    });
+  }
+
+  console.log(`Environment: ${env}`);
+  console.log(`Context windows: ${listCtxWindows().join(", ")}`);
+}
+```
+
+## Best Practices
+
+### 1. Always Check Before Using
+
+```typescript
+// Good
+if (hasCtxWindow("docs")) {
+  const cw = getCtxWindow("docs");
+}
+
+// Better
+function safeGet(name: string) {
+  if (!hasCtxWindow(name)) {
+    throw new Error(`Context window '${name}' not found`);
+  }
+  return getCtxWindow(name);
+}
+```
+
+### 2. Use Constants
+
+```typescript
+const CONTEXT_WINDOWS = {
+  USERS: "user-documentation",
+  API: "api-reference",
+  SUPPORT: "support-docs"
+} as const;
+
+if (hasCtxWindow(CONTEXT_WINDOWS.USERS)) {
+  const cw = getCtxWindow(CONTEXT_WINDOWS.USERS);
+}
+```
+
+### 3. Cleanup When Done
+
+```typescript
+try {
+  await createCtxWindow({
+    indexName: "temp",
+    data: ["./temp"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+
+  // Use it...
+} finally {
+  deleteCtxWindow("temp");
+}
+```
+
+### 4. Validate on Startup
+
+```typescript
+async function validateStartup() {
+  const required = ["docs", "api", "faq"];
+  const existing = listCtxWindows();
+  const missing = required.filter(name => !existing.includes(name));
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required context windows: ${missing.join(", ")}`
+    );
+  }
+}
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="createCtxWindow" icon="folder-plus" href="/api-reference/create-ctx-window">
+    Create and register context windows
+  </Card>
+  <Card title="getCtxWindow" icon="download" href="/api-reference/get-ctx-window">
+    Retrieve registered context windows
+  </Card>
+  <Card title="Examples" icon="code" href="/examples">
+    See complete implementations
+  </Card>
+  <Card title="Best Practices" icon="star" href="/best-practices">
+    Registry management best practices
+  </Card>
+</CardGroup>
+

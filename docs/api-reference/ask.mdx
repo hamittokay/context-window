@@ -1,0 +1,533 @@
+---
+title: 'ask()'
+description: 'Query a context window and get AI-generated answers with source citations'
+---
+
+## Overview
+
+The `ask()` method queries your context window with a natural language question and returns an AI-generated answer based solely on the ingested documents.
+
+<Check>
+  Uses strict RAG - answers only from your documents, never hallucinates.
+</Check>
+
+## Signature
+
+```typescript
+async function ask(question: string): Promise<AskResult>
+```
+
+## Parameters
+
+<ParamField path="question" type="string" required>
+  A natural language question to answer based on the ingested documents.
+
+  ```typescript
+  await cw.ask("What is the capital of France?")
+  await cw.ask("How do I reset my password?")
+  await cw.ask("Explain the installation process")
+  ```
+</ParamField>
+
+## Return Value
+
+<ResponseField name="AskResult" type="object">
+  Object containing the answer and source files
+
+  <Expandable title="AskResult properties">
+    <ResponseField name="text" type="string" required>
+      The AI-generated answer to your question. If the answer cannot be found in the documents, returns "I don't know based on the uploaded files."
+
+      ```typescript
+      result.text
+      // "The capital of France is Paris, located in the north-central part of the country."
+      ```
+    </ResponseField>
+
+    <ResponseField name="sources" type="string[]" required>
+      Array of source filenames that were used to generate the answer. Useful for verification and citation.
+
+      ```typescript
+      result.sources
+      // ["geography.pdf", "cities.md"]
+      ```
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## How It Works
+
+When you call `ask()`, the following happens:
+
+1. **Question Embedding**: Converts your question to a 1536-dimensional vector
+2. **Similarity Search**: Finds the top-K most relevant chunks from Pinecone
+3. **Context Assembly**: Combines retrieved chunks into a context prompt
+4. **Answer Generation**: Uses OpenAI's LLM with strict RAG instructions
+5. **Source Extraction**: Identifies which documents were used
+
+<Info>
+  The entire process typically takes 1-4 seconds depending on model and context size.
+</Info>
+
+## Examples
+
+### Basic Question
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "user-manual",
+  data: ["./manual.pdf"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+const result = await cw.ask("How do I reset the device?");
+
+console.log("Answer:", result.text);
+// "To reset the device, press and hold the power button for 10 seconds..."
+
+console.log("Sources:", result.sources);
+// ["manual.pdf"]
+```
+
+### Multiple Questions
+
+```typescript
+const questions = [
+  "What is the product warranty?",
+  "How do I contact support?",
+  "What are the system requirements?"
+];
+
+for (const question of questions) {
+  const result = await cw.ask(question);
+  console.log(`Q: ${question}`);
+  console.log(`A: ${result.text}`);
+  console.log(`Sources: ${result.sources.join(", ")}`);
+  console.log("---");
+}
+```
+
+### Error Handling
+
+```typescript
+try {
+  const result = await cw.ask("What is the meaning of life?");
+
+  if (result.text.includes("I don't know")) {
+    console.log("Answer not found in documents");
+  } else {
+    console.log("Answer:", result.text);
+  }
+} catch (error) {
+  console.error("Failed to get answer:", error);
+}
+```
+
+### Web API Example
+
+```typescript
+import express from "express";
+import { getCtxWindow } from "context-window";
+
+const app = express();
+app.use(express.json());
+
+app.post("/api/ask", async (req, res) => {
+  try {
+    const { question } = req.body;
+
+    if (!question) {
+      return res.status(400).json({
+        error: "Question is required"
+      });
+    }
+
+    const cw = getCtxWindow("documentation");
+    const result = await cw.ask(question);
+
+    res.json({
+      answer: result.text,
+      sources: result.sources,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to process question"
+    });
+  }
+});
+
+app.listen(3000);
+```
+
+### Chatbot Example
+
+```typescript
+import readline from "readline";
+import { createContextWindow } from "context-window";
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+const cw = await createContextWindow({
+  indexName: "docs",
+  data: ["./documentation"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+console.log("Chatbot ready! Ask me anything (type 'exit' to quit)\n");
+
+function askQuestion() {
+  rl.question("You: ", async (question) => {
+    if (question.toLowerCase() === "exit") {
+      console.log("Goodbye!");
+      rl.close();
+      return;
+    }
+
+    const result = await cw.ask(question);
+    console.log(`\nBot: ${result.text}`);
+    console.log(`Sources: ${result.sources.join(", ")}\n`);
+
+    askQuestion();
+  });
+}
+
+askQuestion();
+```
+
+### React Component Example
+
+```typescript
+import { useState } from "react";
+
+export function AskQuestion() {
+  const [question, setQuestion] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleAsk = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question })
+      });
+
+      const data = await response.json();
+      setResult(data);
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        placeholder="Ask a question..."
+      />
+      <button onClick={handleAsk} disabled={loading}>
+        {loading ? "Thinking..." : "Ask"}
+      </button>
+
+      {result && (
+        <div>
+          <p><strong>Answer:</strong> {result.answer}</p>
+          <p><strong>Sources:</strong> {result.sources.join(", ")}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Behavior & Edge Cases
+
+### When Answer Is Not Found
+
+If the answer cannot be found in your documents:
+
+```typescript
+const result = await cw.ask("What is quantum physics?");
+
+console.log(result.text);
+// "I don't know based on the uploaded files."
+
+console.log(result.sources);
+// [] (empty array)
+```
+
+<Note>
+  This is intentional behavior. context-window uses strict RAG to prevent hallucinations.
+</Note>
+
+### Context Limits
+
+The retrieval is limited by the `limits` configuration:
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "docs",
+  data: ["./docs"],
+  limits: {
+    topK: 8,                // Top 8 most relevant chunks
+    maxContextChars: 8000,  // Up to 8000 characters of context
+    scoreThreshold: 0.7     // Only chunks with >70% similarity
+  },
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+If your question requires more context, consider:
+- Increasing `topK` to retrieve more chunks
+- Increasing `maxContextChars` to allow more context
+- Lowering or removing `scoreThreshold`
+
+### Question Quality
+
+Better questions get better answers:
+
+```typescript
+// Vague question
+await cw.ask("Tell me about it")
+// May not retrieve relevant context
+
+// Specific question
+await cw.ask("What are the system requirements for Windows installation?")
+// More likely to find relevant information
+
+// Question with context
+await cw.ask("How do I configure SSL certificates in the production environment?")
+// Uses domain-specific terms for better retrieval
+```
+
+## Performance Considerations
+
+### Response Time
+
+Typical response times:
+- **Embedding**: 100-200ms (OpenAI API)
+- **Vector search**: 50-100ms (Pinecone)
+- **LLM generation**: 1-3 seconds (OpenAI)
+- **Total**: 1-4 seconds
+
+### Optimization Tips
+
+1. **Use faster models**:
+```typescript
+ai: {
+  provider: "openai",
+  model: "gpt-4o-mini"  // Faster and cheaper than gpt-4o
+}
+```
+
+2. **Reduce context size**:
+```typescript
+limits: {
+  topK: 5,               // Fewer chunks
+  maxContextChars: 5000  // Less context
+}
+```
+
+3. **Cache common questions**:
+```typescript
+const cache = new Map();
+
+async function cachedAsk(cw, question) {
+  if (cache.has(question)) {
+    return cache.get(question);
+  }
+
+  const result = await cw.ask(question);
+  cache.set(question, result);
+  return result;
+}
+```
+
+## Advanced Patterns
+
+### Retry with Backoff
+
+```typescript
+async function askWithRetry(
+  cw: ContextWindow,
+  question: string,
+  maxRetries = 3
+) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await cw.ask(question);
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await new Promise(resolve =>
+        setTimeout(resolve, 1000 * Math.pow(2, i))
+      );
+    }
+  }
+}
+```
+
+### Timeout Handling
+
+```typescript
+async function askWithTimeout(
+  cw: ContextWindow,
+  question: string,
+  timeoutMs = 10000
+) {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Timeout")), timeoutMs)
+  );
+
+  const answer = cw.ask(question);
+
+  return Promise.race([answer, timeout]);
+}
+```
+
+### Batch Questions
+
+```typescript
+async function askBatch(
+  cw: ContextWindow,
+  questions: string[]
+) {
+  return Promise.all(
+    questions.map(q => cw.ask(q))
+  );
+}
+
+// Usage
+const results = await askBatch(cw, [
+  "What is the warranty?",
+  "How do I return a product?",
+  "What payment methods are accepted?"
+]);
+```
+
+## Best Practices
+
+### 1. Validate Input
+
+```typescript
+function validateQuestion(question: string) {
+  if (!question || question.trim().length === 0) {
+    throw new Error("Question cannot be empty");
+  }
+  if (question.length > 500) {
+    throw new Error("Question too long (max 500 characters)");
+  }
+  return question.trim();
+}
+
+const question = validateQuestion(userInput);
+const result = await cw.ask(question);
+```
+
+### 2. Handle Edge Cases
+
+```typescript
+const result = await cw.ask(question);
+
+if (result.sources.length === 0) {
+  console.log("No relevant documents found");
+} else if (result.text.includes("I don't know")) {
+  console.log("Answer not available in documents");
+} else {
+  console.log("Answer found:", result.text);
+}
+```
+
+### 3. Provide User Feedback
+
+```typescript
+async function askWithProgress(cw: ContextWindow, question: string) {
+  console.log("🔍 Searching documents...");
+
+  const start = Date.now();
+  const result = await cw.ask(question);
+  const duration = Date.now() - start;
+
+  console.log(`✓ Answer generated in ${duration}ms`);
+  console.log(`📄 Used ${result.sources.length} source(s)`);
+
+  return result;
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title='Always returns "I don\'t know"'>
+    **Possible causes**:
+    - Documents didn't ingest properly
+    - Score threshold too high
+    - Question doesn't match document content
+
+    **Solutions**:
+    - Verify files were ingested successfully
+    - Lower or remove `scoreThreshold`
+    - Rephrase question to match document terminology
+  </Accordion>
+
+  <Accordion title="Slow response times">
+    **Possible causes**:
+    - Using gpt-4o instead of gpt-4o-mini
+    - Large context size
+    - Network latency
+
+    **Solutions**:
+    - Use faster model: `model: "gpt-4o-mini"`
+    - Reduce `topK` and `maxContextChars`
+    - Check internet connection
+  </Accordion>
+
+  <Accordion title="Inconsistent answers">
+    **Possible causes**:
+    - LLM temperature settings (not configurable in v1)
+    - Ambiguous questions
+    - Limited context
+
+    **Solutions**:
+    - Make questions more specific
+    - Increase `topK` for more context
+    - Ensure documents contain clear information
+  </Accordion>
+
+  <Accordion title="Error: Rate limit exceeded">
+    **Cause**: OpenAI API rate limits
+
+    **Solutions**:
+    - Implement retry with exponential backoff
+    - Upgrade OpenAI account tier
+    - Add request queuing
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="sliders" href="/api-reference/configuration">
+    Tune retrieval and generation settings
+  </Card>
+  <Card title="Best Practices" icon="star" href="/best-practices">
+    Optimize for accuracy and performance
+  </Card>
+  <Card title="Examples" icon="code" href="/examples">
+    See complete implementations
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting">
+    Solve common issues
+  </Card>
+</CardGroup>
+

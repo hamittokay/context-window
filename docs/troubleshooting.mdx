@@ -1,0 +1,715 @@
+---
+title: 'Troubleshooting'
+description: 'Solutions to common problems and error messages'
+---
+
+## Installation Issues
+
+### Error: Cannot find module 'context-window'
+
+**Cause**: Package not installed or not found in node_modules
+
+**Solution**:
+```bash
+# Install the package
+npm install context-window
+
+# or with pnpm
+pnpm install context-window
+
+# Verify installation
+npm list context-window
+```
+
+### TypeScript errors after installation
+
+**Cause**: Missing type definitions or outdated TypeScript version
+
+**Solution**:
+```bash
+# Ensure TypeScript is installed
+npm install --save-dev typescript
+
+# Update to latest version
+npm install context-window@latest
+
+# Clean and rebuild
+rm -rf node_modules package-lock.json
+npm install
+```
+
+## API Key Issues
+
+### Error: "Invalid API key" (OpenAI)
+
+**Symptoms**:
+- Error message contains "Invalid API key"
+- 401 Unauthorized responses
+
+**Solutions**:
+
+<Steps>
+  <Step title="Verify API key format">
+    OpenAI keys start with `sk-`
+
+    ```bash
+    echo $OPENAI_API_KEY
+    # Should output: sk-...
+    ```
+  </Step>
+
+  <Step title="Test API key">
+    ```bash
+    curl https://api.openai.com/v1/models \
+      -H "Authorization: Bearer $OPENAI_API_KEY"
+    ```
+
+    If this fails, regenerate your key at [OpenAI API Keys](https://platform.openai.com/api-keys)
+  </Step>
+
+  <Step title="Check .env file">
+    Ensure no extra spaces or quotes:
+
+    ```bash
+    # Good
+    OPENAI_API_KEY=sk-abc123...
+
+    # Bad
+    OPENAI_API_KEY="sk-abc123..."  # Remove quotes
+    OPENAI_API_KEY= sk-abc123...   # No space after =
+    ```
+  </Step>
+
+  <Step title="Verify environment loading">
+    ```typescript
+    console.log("API key loaded:",
+      process.env.OPENAI_API_KEY ? "Yes" : "No"
+    );
+
+    // Make sure you're loading .env
+    import "dotenv/config";
+    ```
+  </Step>
+</Steps>
+
+### Error: "Invalid API key" (Pinecone)
+
+**Solutions**:
+
+1. **Verify key in Pinecone Console**:
+   - Go to [app.pinecone.io](https://app.pinecone.io/)
+   - Navigate to API Keys
+   - Copy the correct key
+
+2. **Check environment variable**:
+   ```bash
+   echo $PINECONE_API_KEY
+   ```
+
+3. **Test connection**:
+   ```typescript
+   import { Pinecone } from "@pinecone-database/pinecone";
+
+   const pinecone = new Pinecone({
+     apiKey: process.env.PINECONE_API_KEY || ""
+   });
+
+   const indexes = await pinecone.listIndexes();
+   console.log("Indexes:", indexes);
+   ```
+
+## Pinecone Issues
+
+### Error: "Index not found"
+
+**Symptoms**:
+- "Index 'xyz' not found"
+- Cannot connect to Pinecone index
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Verify index exists">
+    1. Go to [Pinecone Console](https://app.pinecone.io/)
+    2. Check if your index is listed
+    3. Verify the index name matches your `PINECONE_INDEX` environment variable
+  </Accordion>
+
+  <Accordion title="Check index name">
+    ```bash
+    # In .env
+    PINECONE_INDEX=context-window
+
+    # In code
+    indexName: "context-window"  # Must match
+    ```
+  </Accordion>
+
+  <Accordion title="Create index if missing">
+    Create a new index in Pinecone Console with:
+    - **Dimensions**: 1536
+    - **Metric**: cosine
+    - **Cloud**: AWS (us-east-1 recommended for free tier)
+  </Accordion>
+
+  <Accordion title="Wait for index initialization">
+    New indexes take 30-60 seconds to become ready. Wait and try again.
+  </Accordion>
+</AccordionGroup>
+
+### Error: "Incorrect dimensions"
+
+**Symptoms**:
+- "Dimension mismatch: expected X, got 1536"
+- Embedding dimension errors
+
+**Cause**: Pinecone index was created with wrong dimensions
+
+**Solution**:
+
+<Steps>
+  <Step title="Verify required dimensions">
+    OpenAI's `text-embedding-3-small` produces 1536-dimensional vectors
+  </Step>
+
+  <Step title="Check current index dimensions">
+    In Pinecone Console, view your index details to see its dimension setting
+  </Step>
+
+  <Step title="Recreate index with correct dimensions">
+    1. Delete the incorrectly configured index
+    2. Create a new index with **1536 dimensions**
+    3. Re-run your ingestion
+  </Step>
+</Steps>
+
+<Warning>
+  Deleting an index removes all stored vectors. Make sure you have your source documents to re-ingest.
+</Warning>
+
+### Error: "Rate limit exceeded" (Pinecone)
+
+**Cause**: Too many requests to Pinecone API
+
+**Solutions**:
+
+```typescript
+// Add retry logic with exponential backoff
+async function upsertWithRetry(index, vectors, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await index.upsert(vectors);
+      return;
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+
+      const delay = Math.pow(2, i) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
+// Reduce batch sizes
+// Process fewer documents at once
+```
+
+## Ingestion Problems
+
+### Documents not found
+
+**Symptoms**:
+- "ENOENT: no such file or directory"
+- Files not being ingested
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Check file paths">
+    Paths are relative to where you run the script:
+
+    ```typescript
+    // If running from project root:
+    data: ["./docs"]  // ✓
+
+    // Not from where the code file is located
+    data: ["../docs"]  // Might be wrong
+    ```
+
+    Use absolute paths if unsure:
+    ```typescript
+    import path from "path";
+    data: [path.join(__dirname, "docs")]
+    ```
+  </Accordion>
+
+  <Accordion title="Verify files exist">
+    ```bash
+    # List files in directory
+    ls -la ./docs
+
+    # Check specific file
+    ls -l ./document.pdf
+    ```
+  </Accordion>
+
+  <Accordion title="Check file permissions">
+    ```bash
+    # Make sure files are readable
+    chmod +r ./docs/*
+    ```
+  </Accordion>
+
+  <Accordion title="Supported file types only">
+    Only `.txt`, `.md`, and `.pdf` files are processed
+
+    Other file types are silently skipped
+  </Accordion>
+</AccordionGroup>
+
+### PDF parsing fails
+
+**Symptoms**:
+- Error: "Failed to parse PDF"
+- Empty content from PDF files
+
+**Solutions**:
+
+<Tabs>
+  <Tab title="Scanned PDFs">
+    **Problem**: PDF contains images of text, not actual text
+
+    **Test**: Try selecting text in a PDF viewer. If you can't select text, it's scanned
+
+    **Solutions**:
+    - Use OCR software (Adobe Acrobat, Tesseract)
+    - Convert to text first
+    - Use a text-based PDF instead
+  </Tab>
+
+  <Tab title="Password-Protected">
+    **Problem**: PDF requires password to open
+
+    **Solution**:
+    - Remove password protection
+    - Use a PDF tool to create unprotected copy
+  </Tab>
+
+  <Tab title="Corrupted Files">
+    **Problem**: PDF file is corrupted
+
+    **Test**:
+    ```bash
+    # Try opening with pdftoppm
+    pdftoppm -png file.pdf test
+    ```
+
+    **Solution**:
+    - Re-download the file
+    - Convert from original source
+    - Use a PDF repair tool
+  </Tab>
+
+  <Tab title="Large Files">
+    **Problem**: PDF is too large and causes memory issues
+
+    **Solution**:
+    ```bash
+    # Increase Node.js memory
+    NODE_OPTIONS=--max-old-space-size=4096 node script.js
+    ```
+
+    Or split the PDF into smaller files
+  </Tab>
+</Tabs>
+
+### Ingestion is very slow
+
+**Symptoms**:
+- Takes many minutes to ingest documents
+- Seems stuck during ingestion
+
+**Causes & Solutions**:
+
+| Cause | Solution |
+|-------|----------|
+| Many documents | Expected behavior - be patient |
+| OpenAI rate limits | Upgrade tier or reduce chunk size |
+| Large files | Increase chunk size to reduce chunks |
+| Network issues | Check internet connection |
+
+**Optimization tips**:
+```typescript
+// Reduce number of chunks
+chunk: { size: 2000, overlap: 100 }
+
+// Process in batches
+for (const batch of batches) {
+  await createContextWindow({ data: batch, /* ... */ });
+}
+```
+
+## Query Issues
+
+### Always returns "I don't know"
+
+**Symptoms**:
+- Every question returns "I don't know based on the uploaded files"
+- No relevant answers found
+
+**Debugging steps**:
+
+<Steps>
+  <Step title="Verify ingestion succeeded">
+    Check console output during `createContextWindow()` for errors
+  </Step>
+
+  <Step title="Remove score threshold">
+    ```typescript
+    limits: {
+      scoreThreshold: 0  // Remove filtering
+    }
+    ```
+  </Step>
+
+  <Step title="Increase retrieval">
+    ```typescript
+    limits: {
+      topK: 12,               // More chunks
+      maxContextChars: 12000  // More context
+    }
+    ```
+  </Step>
+
+  <Step title="Rephrase question">
+    Use terminology that appears in your documents:
+
+    ```typescript
+    // If docs say "authentication"
+    ✓ "How does authentication work?"
+    ✗ "How do I log in?"
+    ```
+  </Step>
+
+  <Step title="Check namespace">
+    Ensure you're querying the correct namespace:
+
+    ```typescript
+    // Creation
+    vectorStore: { namespace: "docs-v1" }
+
+    // Query - must use same namespace
+    // If using registry, indexName should match
+    ```
+  </Step>
+</Steps>
+
+### Inconsistent or wrong answers
+
+**Symptoms**:
+- Answers change between identical questions
+- Answers don't match document content
+- Contradictory information
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Increase topK for more context">
+    ```typescript
+    limits: {
+      topK: 10  // Retrieve more relevant chunks
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Check chunk size">
+    Chunks might be too small and missing context:
+
+    ```typescript
+    chunk: {
+      size: 1500,   // Larger chunks
+      overlap: 250  // More overlap
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Use better model">
+    ```typescript
+    ai: {
+      provider: "openai",
+      model: "gpt-4o"  // More accurate than gpt-4o-mini
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Remove ambiguous documents">
+    If you have contradictory information in different documents, the AI might use both
+
+    Clean up your document set for consistency
+  </Accordion>
+</AccordionGroup>
+
+### Slow response times
+
+**Symptoms**:
+- Questions take more than 5 seconds
+- Timeout errors
+
+**Solutions**:
+
+```typescript
+// 1. Use faster model
+ai: { provider: "openai", model: "gpt-4o-mini" }
+
+// 2. Reduce context
+limits: {
+  topK: 5,
+  maxContextChars: 5000
+}
+
+// 3. Add timeout handling
+async function askWithTimeout(cw, question, ms = 10000) {
+  return Promise.race([
+    cw.ask(question),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout")), ms)
+    )
+  ]);
+}
+
+// 4. Implement caching
+const cache = new Map();
+if (cache.has(question)) return cache.get(question);
+```
+
+## Memory Issues
+
+### Out of memory during ingestion
+
+**Symptoms**:
+- "JavaScript heap out of memory"
+- Process crashes during ingestion
+
+**Solutions**:
+
+<Steps>
+  <Step title="Increase Node.js memory">
+    ```bash
+    # Set higher memory limit
+    NODE_OPTIONS=--max-old-space-size=4096 node script.js
+
+    # Or in package.json scripts
+    {
+      "scripts": {
+        "start": "NODE_OPTIONS=--max-old-space-size=4096 node index.js"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Process files in batches">
+    ```typescript
+    // Instead of all at once:
+    data: ["./all-docs"]
+
+    // Do in batches:
+    await createContextWindow({
+      indexName: "batch-1",
+      data: ["./docs/part1"]
+    });
+
+    await createContextWindow({
+      indexName: "batch-2",
+      data: ["./docs/part2"]
+    });
+    ```
+  </Step>
+
+  <Step title="Increase chunk size">
+    Fewer chunks = less memory:
+
+    ```typescript
+    chunk: { size: 2000, overlap: 200 }
+    ```
+  </Step>
+
+  <Step title="Split large files">
+    If you have very large PDFs or text files, split them into smaller files
+  </Step>
+</Steps>
+
+## Runtime Errors
+
+### Error: "Context window not found"
+
+**Symptom**: When using `getCtxWindow()`
+
+**Cause**: Context window was never created or wrong name used
+
+**Solution**:
+
+```typescript
+import { hasCtxWindow, createCtxWindow, getCtxWindow } from "context-window";
+
+// Check before retrieving
+if (!hasCtxWindow("my-docs")) {
+  await createCtxWindow({
+    indexName: "my-docs",
+    data: ["./docs"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+}
+
+const cw = getCtxWindow("my-docs");
+```
+
+### Error: "Rate limit exceeded" (OpenAI)
+
+**Symptoms**:
+- "Rate limit reached for requests"
+- 429 status code
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Implement retry logic">
+    ```typescript
+    async function askWithRetry(cw, question, maxRetries = 3) {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          return await cw.ask(question);
+        } catch (error) {
+          if (i === maxRetries - 1) throw error;
+
+          // Exponential backoff
+          const delay = Math.pow(2, i) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Upgrade OpenAI tier">
+    Visit [OpenAI Usage Limits](https://platform.openai.com/account/limits) to:
+    - Check your current tier
+    - View rate limits
+    - Upgrade to higher tier
+  </Accordion>
+
+  <Accordion title="Reduce request frequency">
+    - Implement request queuing
+    - Add delays between requests
+    - Cache common questions
+  </Accordion>
+
+  <Accordion title="Use smaller contexts">
+    ```typescript
+    limits: {
+      topK: 5,               // Fewer chunks
+      maxContextChars: 5000  // Less context
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Network errors
+
+**Symptoms**:
+- "ECONNREFUSED"
+- "Network request failed"
+- Timeout errors
+
+**Solutions**:
+
+1. **Check internet connection**
+2. **Verify firewall settings** (ports 443 for HTTPS)
+3. **Check proxy settings** if behind corporate proxy:
+   ```bash
+   export HTTP_PROXY=http://proxy:port
+   export HTTPS_PROXY=http://proxy:port
+   ```
+4. **Retry with exponential backoff** (see above)
+
+## Environment Issues
+
+### .env file not loaded
+
+**Symptoms**:
+- Environment variables are undefined
+- "API key not set" errors
+
+**Solutions**:
+
+```typescript
+// Install dotenv
+npm install dotenv
+
+// Load at the TOP of your entry file
+import "dotenv/config";
+// or
+import dotenv from "dotenv";
+dotenv.config();
+
+// Verify loading
+console.log("OPENAI_API_KEY:", process.env.OPENAI_API_KEY ? "Loaded" : "Missing");
+```
+
+### Different behavior in production
+
+**Common issues**:
+
+<AccordionGroup>
+  <Accordion title="Environment variables not set">
+    Set env vars in your deployment platform:
+    - **Vercel**: Environment Variables settings
+    - **Heroku**: Config Vars
+    - **AWS**: Parameter Store or Secrets Manager
+    - **Docker**: Pass via `-e` flag or `.env` file
+  </Accordion>
+
+  <Accordion title="File paths different">
+    Use absolute paths or path resolution:
+
+    ```typescript
+    import path from "path";
+    import { fileURLToPath } from "url";
+
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const docsPath = path.join(__dirname, "docs");
+    ```
+  </Accordion>
+
+  <Accordion title="Memory limits">
+    Production environments often have stricter memory limits
+
+    Configure appropriately for your platform
+  </Accordion>
+</AccordionGroup>
+
+## Still Stuck?
+
+If you're still experiencing issues:
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/hamittokay/context-window/issues">
+    Search existing issues or create a new one
+  </Card>
+  <Card title="FAQ" icon="circle-question" href="/faq">
+    Check frequently asked questions
+  </Card>
+  <Card title="Examples" icon="code" href="/examples">
+    See working code examples
+  </Card>
+  <Card title="Best Practices" icon="star" href="/best-practices">
+    Follow recommended patterns
+  </Card>
+</CardGroup>
+
+When reporting issues, please include:
+- Node.js version (`node --version`)
+- Package version (`npm list context-window`)
+- Error message and stack trace
+- Minimal code to reproduce the issue
+- Operating system
+

@@ -1,0 +1,603 @@
+---
+title: 'Configuration'
+description: 'Complete reference for all configuration options'
+---
+
+## Overview
+
+context-window provides extensive configuration options to customize AI models, vector storage, text chunking, and retrieval behavior.
+
+## Configuration Interface
+
+```typescript
+interface CreateContextWindowOptions {
+  indexName: string;
+  data: string | string[];
+  ai?: AIConfig;
+  vectorStore?: VectorStoreConfig;
+  chunk?: ChunkConfig;
+  limits?: LimitsConfig;
+}
+```
+
+## Required Options
+
+### indexName
+
+<ParamField path="indexName" type="string" required>
+  Unique identifier for the context window. Also used as the Pinecone namespace.
+
+  **Rules**:
+  - Must be unique across your application
+  - Use descriptive names (e.g., `"user-documentation"`, not `"docs1"`)
+  - Alphanumeric characters, hyphens, and underscores only
+
+  ```typescript
+  indexName: "product-catalog"
+  ```
+</ParamField>
+
+### data
+
+<ParamField path="data" type="string | string[]" required>
+  File path(s) or directory path(s) to ingest.
+
+  **Supported formats**: `.txt`, `.md`, `.pdf`
+
+  **Behavior**:
+  - Directories are processed recursively
+  - Hidden files (starting with `.`) are ignored
+  - Non-supported files are skipped
+
+  ```typescript
+  // Single file
+  data: "./document.pdf"
+
+  // Multiple files
+  data: ["./doc1.pdf", "./doc2.md"]
+
+  // Directory
+  data: ["./documentation"]
+
+  // Mixed
+  data: ["./docs", "./extra/file.pdf"]
+  ```
+</ParamField>
+
+## Optional Configurations
+
+### ai
+
+<ParamField path="ai" type="AIConfig">
+  AI provider and model configuration
+
+  **Default**:
+  ```typescript
+  {
+    provider: "openai",
+    model: "gpt-4o-mini"
+  }
+  ```
+
+  <Expandable title="AIConfig properties">
+    <ParamField path="provider" type='"openai"'>
+      AI provider to use. Currently only `"openai"` is supported.
+
+      ```typescript
+      provider: "openai"
+      ```
+    </ParamField>
+
+    <ParamField path="model" type="string">
+      OpenAI model to use for chat completions.
+
+      **Available models**:
+      - `"gpt-4o-mini"` (default) - Fast and cost-effective
+      - `"gpt-4o"` - Most capable, higher accuracy
+      - `"gpt-4-turbo"` - Balance of speed and capability
+      - `"gpt-3.5-turbo"` - Fastest, least expensive
+
+      ```typescript
+      model: "gpt-4o"
+      ```
+
+      <Note>
+        Embeddings always use `text-embedding-3-small` (1536 dimensions)
+      </Note>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+**Examples**:
+
+```typescript
+// Use default (gpt-4o-mini)
+ai: { provider: "openai" }
+
+// Use GPT-4 for better accuracy
+ai: {
+  provider: "openai",
+  model: "gpt-4o"
+}
+
+// Use GPT-3.5 for faster, cheaper responses
+ai: {
+  provider: "openai",
+  model: "gpt-3.5-turbo"
+}
+```
+
+### vectorStore
+
+<ParamField path="vectorStore" type="VectorStoreConfig">
+  Vector store provider and configuration
+
+  **Default**:
+  ```typescript
+  {
+    provider: "pinecone",
+    namespace: indexName  // Uses indexName by default
+  }
+  ```
+
+  <Expandable title="VectorStoreConfig properties">
+    <ParamField path="provider" type='"pinecone"'>
+      Vector store provider. Currently only `"pinecone"` is supported.
+
+      ```typescript
+      provider: "pinecone"
+      ```
+    </ParamField>
+
+    <ParamField path="namespace" type="string">
+      Pinecone namespace for data isolation. Defaults to `indexName`.
+
+      Use custom namespaces to:
+      - Separate different datasets in the same index
+      - Test with production data
+      - Organize by environment (dev, staging, prod)
+
+      ```typescript
+      namespace: "production-docs"
+      ```
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+**Examples**:
+
+```typescript
+// Use default namespace (same as indexName)
+vectorStore: { provider: "pinecone" }
+
+// Custom namespace
+vectorStore: {
+  provider: "pinecone",
+  namespace: "v2-documentation"
+}
+
+// Environment-based namespace
+vectorStore: {
+  provider: "pinecone",
+  namespace: `docs-${process.env.NODE_ENV}`
+}
+```
+
+### chunk
+
+<ParamField path="chunk" type="ChunkConfig">
+  Text chunking configuration
+
+  **Default**:
+  ```typescript
+  {
+    size: 1000,
+    overlap: 150
+  }
+  ```
+
+  <Expandable title="ChunkConfig properties">
+    <ParamField path="size" type="number">
+      Maximum characters per chunk.
+
+      **Recommended ranges**:
+      - Small (500-800): Precise, specific answers
+      - Medium (1000-1500): Balanced (default)
+      - Large (1500-2000): Comprehensive explanations
+
+      ```typescript
+      size: 1500
+      ```
+    </ParamField>
+
+    <ParamField path="overlap" type="number">
+      Characters to overlap between consecutive chunks.
+
+      **Purpose**: Preserves context at chunk boundaries
+
+      **Recommended**: 10-20% of chunk size
+
+      ```typescript
+      overlap: 200
+      ```
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+**Examples**:
+
+```typescript
+// Use defaults
+chunk: { size: 1000, overlap: 150 }
+
+// Precise answers (smaller chunks)
+chunk: {
+  size: 500,
+  overlap: 75
+}
+
+// Comprehensive answers (larger chunks)
+chunk: {
+  size: 2000,
+  overlap: 300
+}
+
+// Legal documents (large chunks, high overlap)
+chunk: {
+  size: 1500,
+  overlap: 250
+}
+```
+
+**Choosing Chunk Size**:
+
+<Tabs>
+  <Tab title="Small (500-800)">
+    **Best for**:
+    - FAQ documents
+    - Simple Q&A
+    - Definition lookups
+    - Quick facts
+
+    **Trade-offs**:
+    - ✅ Precise matches
+    - ✅ Less noise
+    - ❌ May miss context
+    - ❌ More chunks = more cost
+  </Tab>
+
+  <Tab title="Medium (1000-1500)">
+    **Best for**:
+    - Technical documentation
+    - User manuals
+    - General knowledge bases
+    - Balanced use cases
+
+    **Trade-offs**:
+    - ✅ Good balance
+    - ✅ Preserves context
+    - ✅ Cost-effective
+    - ➖ Default setting
+  </Tab>
+
+  <Tab title="Large (1500-2000)">
+    **Best for**:
+    - Legal documents
+    - Research papers
+    - Complex explanations
+    - Conceptual content
+
+    **Trade-offs**:
+    - ✅ Full context
+    - ✅ Fewer chunks
+    - ❌ May include irrelevant info
+    - ❌ Longer processing
+  </Tab>
+</Tabs>
+
+### limits
+
+<ParamField path="limits" type="LimitsConfig">
+  Query and retrieval limits
+
+  **Default**:
+  ```typescript
+  {
+    topK: 8,
+    maxContextChars: 8000,
+    scoreThreshold: 0
+  }
+  ```
+
+  <Expandable title="LimitsConfig properties">
+    <ParamField path="topK" type="number">
+      Number of most relevant chunks to retrieve from Pinecone.
+
+      **Range**: 1-20 (typical: 3-15)
+
+      **Impact**:
+      - Higher = more context, better coverage
+      - Lower = faster, more focused
+
+      ```typescript
+      topK: 10
+      ```
+    </ParamField>
+
+    <ParamField path="maxContextChars" type="number">
+      Maximum characters to send to the LLM as context.
+
+      **Range**: 2000-16000 (typical: 5000-12000)
+
+      **Impact**:
+      - Higher = more context, higher cost
+      - Lower = faster, cheaper, more focused
+
+      **Note**: If retrieved chunks exceed this limit, they're truncated.
+
+      ```typescript
+      maxContextChars: 10000
+      ```
+    </ParamField>
+
+    <ParamField path="scoreThreshold" type="number">
+      Minimum similarity score (0-1) for retrieved chunks.
+
+      **Range**: 0-1 (0 = no filtering)
+
+      **Impact**:
+      - 0: Include all matches (default)
+      - 0.5-0.6: Moderate relevance
+      - 0.7-0.8: High confidence only
+      - 0.9+: Very strict matching
+
+      ```typescript
+      scoreThreshold: 0.75
+      ```
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+**Examples**:
+
+```typescript
+// Use defaults (balanced)
+limits: {
+  topK: 8,
+  maxContextChars: 8000,
+  scoreThreshold: 0
+}
+
+// High precision (strict matching)
+limits: {
+  topK: 5,
+  maxContextChars: 6000,
+  scoreThreshold: 0.75
+}
+
+// Comprehensive coverage
+limits: {
+  topK: 12,
+  maxContextChars: 12000,
+  scoreThreshold: 0
+}
+
+// Cost-optimized
+limits: {
+  topK: 5,
+  maxContextChars: 5000,
+  scoreThreshold: 0.6
+}
+```
+
+**Tuning Guidelines**:
+
+<CardGroup cols={2}>
+  <Card title="For Accuracy" icon="bullseye">
+    ```typescript
+    limits: {
+      topK: 10-15,
+      maxContextChars: 10000-12000,
+      scoreThreshold: 0-0.5
+    }
+    ```
+    More context = better answers
+  </Card>
+
+  <Card title="For Speed" icon="bolt">
+    ```typescript
+    limits: {
+      topK: 3-5,
+      maxContextChars: 5000-6000,
+      scoreThreshold: 0.7
+    }
+    ```
+    Less context = faster responses
+  </Card>
+
+  <Card title="For Cost" icon="dollar-sign">
+    ```typescript
+    limits: {
+      topK: 5,
+      maxContextChars: 5000,
+      scoreThreshold: 0.6
+    }
+    ```
+    Less tokens = lower costs
+  </Card>
+
+  <Card title="For Precision" icon="crosshairs">
+    ```typescript
+    limits: {
+      topK: 5,
+      maxContextChars: 6000,
+      scoreThreshold: 0.75-0.85
+    }
+    ```
+    High threshold = focused answers
+  </Card>
+</CardGroup>
+
+## Complete Examples
+
+### General Purpose Configuration
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "general-docs",
+  data: ["./documentation"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o-mini"
+  },
+  vectorStore: {
+    provider: "pinecone"
+  },
+  chunk: {
+    size: 1000,
+    overlap: 150
+  },
+  limits: {
+    topK: 8,
+    maxContextChars: 8000,
+    scoreThreshold: 0
+  }
+});
+```
+
+### High-Accuracy Configuration
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "research-papers",
+  data: ["./papers"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o"  // Best model
+  },
+  chunk: {
+    size: 1500,      // Larger chunks for context
+    overlap: 250
+  },
+  limits: {
+    topK: 12,        // More chunks
+    maxContextChars: 12000,
+    scoreThreshold: 0  // No filtering
+  },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Cost-Optimized Configuration
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "faq",
+  data: ["./faq.md"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o-mini"  // Cheapest model
+  },
+  chunk: {
+    size: 2000,           // Fewer chunks
+    overlap: 100
+  },
+  limits: {
+    topK: 5,              // Fewer retrievals
+    maxContextChars: 5000, // Less context
+    scoreThreshold: 0.6   // Filter low-quality matches
+  },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Legal/Compliance Configuration
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "legal-docs",
+  data: ["./contracts", "./policies"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o"  // Highest accuracy
+  },
+  chunk: {
+    size: 1500,      // Large chunks for full context
+    overlap: 300     // High overlap for continuity
+  },
+  limits: {
+    topK: 5,         // Fewer, more relevant chunks
+    maxContextChars: 8000,
+    scoreThreshold: 0.75  // High confidence only
+  },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+## Environment Variables
+
+Required environment configuration:
+
+```bash
+# Required
+OPENAI_API_KEY=sk-...
+PINECONE_API_KEY=...
+
+# Optional (with defaults)
+PINECONE_INDEX=context-window
+PINECONE_ENVIRONMENT=us-east-1
+```
+
+## Type Definitions
+
+Full TypeScript types for reference:
+
+```typescript
+interface CreateContextWindowOptions {
+  indexName: string;
+  data: string | string[];
+  ai?: AIConfig;
+  vectorStore?: VectorStoreConfig;
+  chunk?: ChunkConfig;
+  limits?: LimitsConfig;
+}
+
+interface AIConfig {
+  provider: "openai";
+  model?: string;
+}
+
+interface VectorStoreConfig {
+  provider: "pinecone";
+  namespace?: string;
+}
+
+interface ChunkConfig {
+  size?: number;
+  overlap?: number;
+}
+
+interface LimitsConfig {
+  topK?: number;
+  maxContextChars?: number;
+  scoreThreshold?: number;
+}
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="createContextWindow" icon="plus" href="/api-reference/create-context-window">
+    Main function using these options
+  </Card>
+  <Card title="Best Practices" icon="star" href="/best-practices">
+    Guidelines for optimal configuration
+  </Card>
+  <Card title="Examples" icon="code" href="/examples">
+    Real-world configuration examples
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting">
+    Solve configuration issues
+  </Card>
+</CardGroup>
+

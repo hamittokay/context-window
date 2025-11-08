@@ -1,0 +1,662 @@
+---
+title: 'Examples'
+description: 'Complete code examples for common scenarios'
+---
+
+## Basic Examples
+
+### Simple File Ingestion
+
+```typescript
+import { createContextWindow } from "context-window";
+
+const cw = await createContextWindow({
+  indexName: "single-file",
+  data: ["./document.pdf"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+const result = await cw.ask("What is this document about?");
+console.log(result.text);
+```
+
+###
+
+ Multiple Files
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "multiple-files",
+  data: [
+    "./intro.md",
+    "./chapter1.pdf",
+    "./chapter2.pdf",
+    "./conclusion.txt"
+  ],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+const questions = [
+  "What is covered in chapter 1?",
+  "Summarize chapter 2",
+  "What are the main conclusions?"
+];
+
+for (const question of questions) {
+  const result = await cw.ask(question);
+  console.log(`Q: ${question}`);
+  console.log(`A: ${result.text}\n`);
+}
+```
+
+### Directory Ingestion
+
+```typescript
+// Process all supported files in a directory recursively
+const cw = await createContextWindow({
+  indexName: "documentation",
+  data: ["./docs"],  // Will find all .txt, .md, .pdf files
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+const result = await cw.ask("How do I get started?");
+console.log(result.text);
+console.log(`Sources: ${result.sources.join(", ")}`);
+```
+
+## Advanced Examples
+
+### Custom Chunk Configuration
+
+```typescript
+// Larger chunks for comprehensive answers
+const largeCw = await createContextWindow({
+  indexName: "legal-docs",
+  data: ["./contracts"],
+  chunk: {
+    size: 2000,    // 2000 characters per chunk
+    overlap: 300   // 300 characters overlap
+  },
+  ai: { provider: "openai", model: "gpt-4o" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Smaller chunks for precise answers
+const smallCw = await createContextWindow({
+  indexName: "faq",
+  data: ["./faq.md"],
+  chunk: {
+    size: 500,     // 500 characters per chunk
+    overlap: 75    // 75 characters overlap
+  },
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Fine-tuned Retrieval
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "technical-docs",
+  data: ["./technical"],
+  limits: {
+    topK: 10,                // Retrieve top 10 chunks
+    maxContextChars: 10000,  // Allow up to 10K characters
+    scoreThreshold: 0.7      // Only use chunks with >70% similarity
+  },
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+const result = await cw.ask("Explain the architecture");
+console.log(result.text);
+```
+
+### Using Registry Pattern
+
+```typescript
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+// Initialize multiple context windows
+await Promise.all([
+  createCtxWindow({
+    indexName: "user-docs",
+    data: ["./docs/users"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  }),
+  createCtxWindow({
+    indexName: "api-docs",
+    data: ["./docs/api"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  })
+]);
+
+// Use them anywhere in your code
+function askUserDocs(question: string) {
+  const cw = getCtxWindow("user-docs");
+  return cw.ask(question);
+}
+
+function askApiDocs(question: string) {
+  const cw = getCtxWindow("api-docs");
+  return cw.ask(question);
+}
+
+// Usage
+const userAnswer = await askUserDocs("How do I login?");
+const apiAnswer = await askApiDocs("What is the authentication endpoint?");
+```
+
+## Integration Examples
+
+### Express.js API
+
+```typescript
+import express from "express";
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+const app = express();
+app.use(express.json());
+
+// Initialize on startup
+async function initialize() {
+  await createCtxWindow({
+    indexName: "docs",
+    data: ["./documentation"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+  console.log("Context window ready!");
+}
+
+// Question endpoint
+app.post("/api/ask", async (req, res) => {
+  try {
+    const { question } = req.body;
+
+    if (!question) {
+      return res.status(400).json({ error: "Question required" });
+    }
+
+    const cw = getCtxWindow("docs");
+    const result = await cw.ask(question);
+
+    res.json({
+      answer: result.text,
+      sources: result.sources
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// Start server
+initialize().then(() => {
+  app.listen(3000, () => {
+    console.log("Server running on port 3000");
+  });
+});
+```
+
+### Next.js API Route
+
+```typescript
+// app/api/ask/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getCtxWindow } from "context-window";
+
+export async function POST(request: NextRequest) {
+  try {
+    const { question } = await request.json();
+
+    if (!question) {
+      return NextResponse.json(
+        { error: "Question is required" },
+        { status: 400 }
+      );
+    }
+
+    const cw = getCtxWindow("documentation");
+    const result = await cw.ask(question);
+
+    return NextResponse.json({
+      answer: result.text,
+      sources: result.sources
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to process question" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### React Component
+
+```typescript
+import { useState } from "react";
+
+interface AskResult {
+  answer: string;
+  sources: string[];
+}
+
+export function QuestionForm() {
+  const [question, setQuestion] = useState("");
+  const [result, setResult] = useState<AskResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get answer");
+      }
+
+      const data = await response.json();
+      setResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Ask a question
+          </label>
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="What would you like to know?"
+            className="w-full px-4 py-2 border rounded-lg"
+            disabled={loading}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || !question}
+          className="w-full bg-blue-600 text-white py-2 rounded-lg disabled:opacity-50"
+        >
+          {loading ? "Thinking..." : "Ask"}
+        </button>
+      </form>
+
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {result && (
+        <div className="mt-6 space-y-4">
+          <div className="p-4 bg-white rounded-lg shadow">
+            <h3 className="font-semibold mb-2">Answer:</h3>
+            <p className="text-gray-700">{result.answer}</p>
+          </div>
+
+          {result.sources.length > 0 && (
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <h4 className="text-sm font-semibold mb-2">Sources:</h4>
+              <ul className="text-sm text-gray-600">
+                {result.sources.map((source, i) => (
+                  <li key={i}>• {source}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### CLI Application
+
+```typescript
+#!/usr/bin/env node
+import readline from "readline";
+import { createContextWindow } from "context-window";
+import { Command } from "commander";
+
+const program = new Command();
+
+program
+  .name("doc-chat")
+  .description("Chat with your documentation")
+  .argument("<directory>", "Documentation directory")
+  .action(async (directory) => {
+    console.log("Loading documents...");
+
+    const cw = await createContextWindow({
+      indexName: "cli-docs",
+      data: [directory],
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+
+    console.log("Ready! Ask me anything (type 'exit' to quit)\n");
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    const askQuestion = () => {
+      rl.question("You: ", async (question) => {
+        if (question.toLowerCase() === "exit") {
+          console.log("Goodbye!");
+          rl.close();
+          process.exit(0);
+        }
+
+        try {
+          const result = await cw.ask(question);
+          console.log(`\nAssistant: ${result.text}`);
+          console.log(`Sources: ${result.sources.join(", ")}\n`);
+        } catch (error) {
+          console.error("Error:", error);
+        }
+
+        askQuestion();
+      });
+    };
+
+    askQuestion();
+  });
+
+program.parse();
+```
+
+### Discord Bot
+
+```typescript
+import { Client, GatewayIntentBits } from "discord.js";
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
+});
+
+// Initialize context window
+await createCtxWindow({
+  indexName: "server-docs",
+  data: ["./server-documentation"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+client.on("messageCreate", async (message) => {
+  // Ignore bot messages
+  if (message.author.bot) return;
+
+  // Respond to !ask command
+  if (message.content.startsWith("!ask ")) {
+    const question = message.content.slice(5);
+
+    try {
+      await message.channel.sendTyping();
+
+      const cw = getCtxWindow("server-docs");
+      const result = await cw.ask(question);
+
+      await message.reply({
+        content: result.text,
+        allowedMentions: { repliedUser: false }
+      });
+    } catch (error) {
+      await message.reply("Sorry, I encountered an error.");
+      console.error(error);
+    }
+  }
+});
+
+client.login(process.env.DISCORD_TOKEN);
+```
+
+## Testing Examples
+
+### Unit Test
+
+```typescript
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { createContextWindow } from "context-window";
+
+describe("Context Window", () => {
+  let cw: ContextWindow;
+
+  beforeAll(async () => {
+    cw = await createContextWindow({
+      indexName: "test-docs",
+      data: ["./test-fixtures"],
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+  });
+
+  it("should answer basic questions", async () => {
+    const result = await cw.ask("What is the main topic?");
+    expect(result.text).toBeDefined();
+    expect(result.sources).toBeInstanceOf(Array);
+  });
+
+  it("should return sources", async () => {
+    const result = await cw.ask("Test question");
+    expect(result.sources.length).toBeGreaterThan(0);
+  });
+
+  it('should say "I don\'t know" for unanswerable questions', async () => {
+    const result = await cw.ask("What is quantum physics?");
+    expect(result.text).toContain("I don't know");
+  });
+});
+```
+
+### Integration Test
+
+```typescript
+import { describe, it, expect } from "vitest";
+import request from "supertest";
+import app from "../app";
+
+describe("API Integration", () => {
+  it("should answer questions via API", async () => {
+    const response = await request(app)
+      .post("/api/ask")
+      .send({ question: "How do I get started?" })
+      .expect(200);
+
+    expect(response.body).toHaveProperty("answer");
+    expect(response.body).toHaveProperty("sources");
+  });
+
+  it("should return 400 for missing question", async () => {
+    await request(app)
+      .post("/api/ask")
+      .send({})
+      .expect(400);
+  });
+});
+```
+
+## Error Handling Examples
+
+### Retry Logic
+
+```typescript
+async function askWithRetry(
+  cw: ContextWindow,
+  question: string,
+  maxRetries = 3
+) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await cw.ask(question);
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+
+      const delay = Math.pow(2, i) * 1000;
+      console.log(`Retry ${i + 1} after ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+```
+
+### Timeout Handling
+
+```typescript
+async function askWithTimeout(
+  cw: ContextWindow,
+  question: string,
+  timeoutMs = 10000
+) {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("Timeout")), timeoutMs)
+  );
+
+  const answer = cw.ask(question);
+
+  return Promise.race([answer, timeout]);
+}
+```
+
+### Graceful Degradation
+
+```typescript
+async function askWithFallback(
+  cw: ContextWindow,
+  question: string,
+  fallbackMessage = "I'm unable to answer right now. Please try again later."
+) {
+  try {
+    const result = await cw.ask(question);
+
+    if (result.text.includes("I don't know")) {
+      return {
+        text: fallbackMessage,
+        sources: [],
+        fallback: true
+      };
+    }
+
+    return { ...result, fallback: false };
+  } catch (error) {
+    console.error("Error asking question:", error);
+    return {
+      text: fallbackMessage,
+      sources: [],
+      fallback: true
+    };
+  }
+}
+```
+
+## Performance Examples
+
+### Batch Processing
+
+```typescript
+async function processBatchQuestions(
+  cw: ContextWindow,
+  questions: string[]
+) {
+  const results = await Promise.all(
+    questions.map(q => cw.ask(q))
+  );
+
+  return questions.map((q, i) => ({
+    question: q,
+    answer: results[i].text,
+    sources: results[i].sources
+  }));
+}
+
+// Usage
+const questions = [
+  "What is the product?",
+  "How much does it cost?",
+  "Where can I buy it?"
+];
+
+const answers = await processBatchQuestions(cw, questions);
+```
+
+### Caching
+
+```typescript
+class CachedContextWindow {
+  private cache = new Map<string, AskResult>();
+
+  constructor(private cw: ContextWindow) {}
+
+  async ask(question: string): Promise<AskResult> {
+    const cached = this.cache.get(question);
+    if (cached) {
+      console.log("Cache hit");
+      return cached;
+    }
+
+    console.log("Cache miss");
+    const result = await this.cw.ask(question);
+    this.cache.set(question, result);
+    return result;
+  }
+
+  clearCache() {
+    this.cache.clear();
+  }
+}
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Use Cases" icon="lightbulb" href="/use-cases">
+    Explore real-world applications
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Complete API documentation
+  </Card>
+  <Card title="Best Practices" icon="star" href="/best-practices">
+    Optimization tips and guidelines
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get started from scratch
+  </Card>
+</CardGroup>
+

@@ -1,0 +1,315 @@
+---
+title: 'createContextWindow'
+description: 'Create a context window instance directly without using the registry'
+---
+
+## Overview
+
+`createContextWindow()` creates and initializes a new context window instance. This function handles document ingestion, chunking, embedding, and storage in a single call.
+
+<Check>
+  Use this when you want to manage the instance directly without the registry pattern.
+</Check>
+
+## Signature
+
+```typescript
+async function createContextWindow(
+  options: CreateContextWindowOptions
+): Promise<ContextWindow>
+```
+
+## Parameters
+
+<ParamField path="options" type="CreateContextWindowOptions" required>
+  Configuration object for the context window
+
+  <Expandable title="CreateContextWindowOptions properties">
+    <ParamField path="indexName" type="string" required>
+      Unique identifier for this context window. Also used as the Pinecone namespace.
+
+      ```typescript
+      indexName: "my-documentation"
+      ```
+    </ParamField>
+
+    <ParamField path="data" type="string | string[]" required>
+      File path(s) or directory path(s) to ingest. Supported formats: `.txt`, `.md`, `.pdf`
+
+      ```typescript
+      // Single file
+      data: "./document.pdf"
+
+      // Multiple files
+      data: ["./doc1.pdf", "./doc2.md", "./notes.txt"]
+
+      // Directory (recursive)
+      data: ["./documentation"]
+      ```
+    </ParamField>
+
+    <ParamField path="ai" type="AIConfig">
+      AI provider configuration (default: OpenAI with gpt-4o-mini)
+
+      ```typescript
+      ai: {
+        provider: "openai",
+        model: "gpt-4o-mini"  // optional
+      }
+      ```
+    </ParamField>
+
+    <ParamField path="vectorStore" type="VectorStoreConfig">
+      Vector store configuration (default: Pinecone)
+
+      ```typescript
+      vectorStore: {
+        provider: "pinecone",
+        namespace: "custom-namespace"  // optional, defaults to indexName
+      }
+      ```
+    </ParamField>
+
+    <ParamField path="chunk" type="ChunkConfig">
+      Text chunking configuration
+
+      ```typescript
+      chunk: {
+        size: 1000,     // default: 1000 characters
+        overlap: 150    // default: 150 characters
+      }
+      ```
+    </ParamField>
+
+    <ParamField path="limits" type="LimitsConfig">
+      Query and retrieval limits
+
+      ```typescript
+      limits: {
+        topK: 8,                // default: 8 chunks
+        maxContextChars: 8000,  // default: 8000 characters
+        scoreThreshold: 0       // default: 0 (no filtering)
+      }
+      ```
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Return Value
+
+<ResponseField name="ContextWindow" type="object">
+  A context window instance with an `ask()` method
+
+  <Expandable title="ContextWindow properties">
+    <ResponseField name="ask" type="function">
+      Method to query the context window. See [ask() documentation](/api-reference/ask).
+
+      ```typescript
+      async ask(question: string): Promise<AskResult>
+      ```
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import { createContextWindow } from "context-window";
+
+const cw = await createContextWindow({
+  indexName: "user-manual",
+  data: ["./manual.pdf"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+const result = await cw.ask("How do I reset the device?");
+console.log(result.text);
+console.log(result.sources);
+```
+
+### Multiple Documents
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "research-papers",
+  data: [
+    "./papers/paper1.pdf",
+    "./papers/paper2.pdf",
+    "./notes/summary.md"
+  ],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Directory Ingestion
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "company-docs",
+  data: ["./documentation"],  // Recursively processes all supported files
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Custom Configuration
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "legal-contracts",
+  data: ["./contracts"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o"  // Use GPT-4 for better accuracy
+  },
+  chunk: {
+    size: 1500,    // Larger chunks for legal text
+    overlap: 200   // More overlap to preserve context
+  },
+  limits: {
+    topK: 5,               // Fewer, more relevant chunks
+    scoreThreshold: 0.75,  // High-confidence matches only
+    maxContextChars: 6000  // Limit context size
+  },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Using Different Models
+
+```typescript
+// Use GPT-4o for maximum accuracy
+const cw = await createContextWindow({
+  indexName: "technical-specs",
+  data: ["./specs"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o"
+  },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Use GPT-4o-mini for cost optimization
+const cwBudget = await createContextWindow({
+  indexName: "faq",
+  data: ["./faq.md"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o-mini"  // Default, more cost-effective
+  },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+## Behavior
+
+### Ingestion Process
+
+When you call `createContextWindow()`, the following happens:
+
+1. **File Discovery**: Recursively finds all `.txt`, `.md`, and `.pdf` files
+2. **Text Extraction**: Parses each file to extract plain text
+3. **Chunking**: Splits text into overlapping chunks
+4. **Embedding**: Converts chunks to 1536-dimensional vectors using OpenAI
+5. **Storage**: Stores vectors in Pinecone with metadata
+6. **Deduplication**: Uses content-based IDs to prevent duplicates
+
+### Idempotency
+
+Re-running `createContextWindow()` with the same files:
+- ✅ Updates existing chunks (same content → same ID)
+- ✅ Adds new files if any were added
+- ✅ Updates modified files
+- ❌ Does NOT create duplicates
+
+### Performance
+
+Ingestion time depends on:
+- Number and size of documents
+- OpenAI API rate limits
+- Pinecone write throughput
+
+Typical times:
+- Small (10 files, 100KB): ~10-30 seconds
+- Medium (100 files, 1MB): ~1-3 minutes
+- Large (1000 files, 10MB): ~10-30 minutes
+
+<Tip>
+  For large document sets, consider showing a progress indicator to users.
+</Tip>
+
+## Error Handling
+
+```typescript
+try {
+  const cw = await createContextWindow({
+    indexName: "my-docs",
+    data: ["./documents"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+} catch (error) {
+  if (error instanceof Error) {
+    console.error("Failed to create context window:", error.message);
+
+    // Common errors:
+    // - "Invalid API key"
+    // - "Index not found"
+    // - "File not found: ./documents"
+    // - "Incorrect dimensions"
+  }
+}
+```
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Error: ENOENT: no such file or directory">
+    **Cause**: The file or directory path in `data` doesn't exist.
+
+    **Solution**: Verify file paths are correct and relative to your execution directory.
+  </Accordion>
+
+  <Accordion title="Error: Index not found">
+    **Cause**: The Pinecone index specified in environment variables doesn't exist.
+
+    **Solution**: Create the index in Pinecone Console or update `PINECONE_INDEX` in `.env`.
+  </Accordion>
+
+  <Accordion title="Error: Incorrect dimensions">
+    **Cause**: Your Pinecone index doesn't have 1536 dimensions.
+
+    **Solution**: Create a new Pinecone index with 1536 dimensions for OpenAI embeddings.
+  </Accordion>
+
+  <Accordion title="Ingestion is very slow">
+    **Cause**: Large number of files or OpenAI rate limits.
+
+    **Solution**:
+    - Reduce chunk size to create fewer embeddings
+    - Increase OpenAI API rate limits
+    - Process files in batches
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="createCtxWindow" icon="folder-plus" href="/api-reference/create-ctx-window">
+    Alternative function with registry support
+  </Card>
+  <Card title="ask()" icon="message-question" href="/api-reference/ask">
+    Query your context window
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/api-reference/configuration">
+    Detailed configuration options
+  </Card>
+  <Card title="Examples" icon="code" href="/examples">
+    More code examples
+  </Card>
+</CardGroup>
+

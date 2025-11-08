@@ -1,0 +1,416 @@
+---
+title: 'getCtxWindow'
+description: 'Retrieve a registered context window from the global registry'
+---
+
+## Overview
+
+`getCtxWindow()` retrieves a previously created and registered context window by its index name. This function works in conjunction with [`createCtxWindow()`](/api-reference/create-ctx-window).
+
+<Check>
+  Use this to access context windows that were registered using `createCtxWindow()`.
+</Check>
+
+## Signature
+
+```typescript
+function getCtxWindow(indexName: string): ContextWindow
+```
+
+## Parameters
+
+<ParamField path="indexName" type="string" required>
+  The unique identifier of the context window to retrieve. Must match the `indexName` used when creating the context window with `createCtxWindow()`.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="ContextWindow" type="object">
+  The registered context window instance
+
+  <Expandable title="ContextWindow properties">
+    <ResponseField name="ask" type="function">
+      Method to query the context window for answers
+
+      ```typescript
+      async ask(question: string): Promise<AskResult>
+      ```
+
+      See [ask() documentation](/api-reference/ask) for details.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+<Warning>
+  Throws an error if no context window with the specified `indexName` exists in the registry.
+</Warning>
+
+```typescript
+// Error message
+Error: Context window with index name "non-existent" not found
+```
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+// First, create and register
+await createCtxWindow({
+  indexName: "documentation",
+  data: ["./docs"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Later, retrieve and use
+const cw = getCtxWindow("documentation");
+const result = await cw.ask("How do I get started?");
+
+console.log(result.text);
+console.log(result.sources);
+```
+
+### Using Across Modules
+
+```typescript
+// initialization.ts
+import { createCtxWindow } from "context-window";
+
+export async function initializeApp() {
+  await createCtxWindow({
+    indexName: "product-catalog",
+    data: ["./products"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+}
+
+// products.service.ts
+import { getCtxWindow } from "context-window";
+
+export async function searchProducts(query: string) {
+  const cw = getCtxWindow("product-catalog");
+  return await cw.ask(query);
+}
+
+// api.route.ts
+import { getCtxWindow } from "context-window";
+
+app.get("/api/products/search", async (req, res) => {
+  const { q } = req.query;
+  const cw = getCtxWindow("product-catalog");
+  const result = await cw.ask(q as string);
+
+  res.json({
+    answer: result.text,
+    sources: result.sources
+  });
+});
+```
+
+### Safe Retrieval with Error Handling
+
+```typescript
+import { getCtxWindow, hasCtxWindow } from "context-window";
+
+function safeGetCtxWindow(indexName: string) {
+  if (!hasCtxWindow(indexName)) {
+    throw new Error(`Context window '${indexName}' has not been initialized`);
+  }
+  return getCtxWindow(indexName);
+}
+
+// Usage
+try {
+  const cw = safeGetCtxWindow("my-docs");
+  const result = await cw.ask("Your question");
+} catch (error) {
+  console.error("Context window not available:", error);
+}
+```
+
+### Multiple Context Windows
+
+```typescript
+import { getCtxWindow } from "context-window";
+
+async function answerUserQuestion(question: string, department: string) {
+  let indexName: string;
+
+  // Route to appropriate context window based on department
+  switch (department) {
+    case "sales":
+      indexName = "sales-docs";
+      break;
+    case "support":
+      indexName = "support-docs";
+      break;
+    case "engineering":
+      indexName = "engineering-docs";
+      break;
+    default:
+      throw new Error("Unknown department");
+  }
+
+  const cw = getCtxWindow(indexName);
+  return await cw.ask(question);
+}
+
+// Usage
+const salesAnswer = await answerUserQuestion(
+  "What's our pricing?",
+  "sales"
+);
+
+const supportAnswer = await answerUserQuestion(
+  "How do I reset my password?",
+  "support"
+);
+```
+
+### Express.js Middleware Pattern
+
+```typescript
+import express from "express";
+import { getCtxWindow } from "context-window";
+
+const app = express();
+
+// Middleware to attach context window to request
+app.use((req, res, next) => {
+  try {
+    req.contextWindow = getCtxWindow("main-docs");
+    next();
+  } catch (error) {
+    res.status(500).json({
+      error: "Documentation service unavailable"
+    });
+  }
+});
+
+// Use in routes
+app.post("/api/ask", async (req, res) => {
+  const { question } = req.body;
+  const result = await req.contextWindow.ask(question);
+  res.json(result);
+});
+
+// TypeScript: Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      contextWindow: ContextWindow;
+    }
+  }
+}
+```
+
+### Lazy Loading Pattern
+
+```typescript
+import { getCtxWindow, hasCtxWindow, createCtxWindow } from "context-window";
+
+// Create a lazy-loading wrapper
+async function getOrCreateContextWindow(indexName: string, dataPath: string) {
+  if (!hasCtxWindow(indexName)) {
+    console.log(`Initializing ${indexName}...`);
+    await createCtxWindow({
+      indexName,
+      data: [dataPath],
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+  }
+  return getCtxWindow(indexName);
+}
+
+// Usage - creates on first access
+const cw = await getOrCreateContextWindow("docs", "./documentation");
+const result = await cw.ask("Your question");
+```
+
+## Best Practices
+
+### 1. Check Before Retrieving
+
+Always verify a context window exists before retrieving:
+
+```typescript
+import { hasCtxWindow, getCtxWindow } from "context-window";
+
+if (hasCtxWindow("my-docs")) {
+  const cw = getCtxWindow("my-docs");
+  // Use it
+} else {
+  console.error("Context window not initialized");
+}
+```
+
+### 2. Use Constants for Index Names
+
+Define index names as constants to avoid typos:
+
+```typescript
+// constants.ts
+export const CTX_WINDOWS = {
+  USER_DOCS: "user-documentation",
+  ADMIN_DOCS: "admin-documentation",
+  API_REFERENCE: "api-reference"
+} as const;
+
+// usage.ts
+import { getCtxWindow } from "context-window";
+import { CTX_WINDOWS } from "./constants";
+
+const cw = getCtxWindow(CTX_WINDOWS.USER_DOCS);
+```
+
+### 3. Centralize Access
+
+Create a service layer for accessing context windows:
+
+```typescript
+// context-window.service.ts
+import { getCtxWindow } from "context-window";
+
+export class ContextWindowService {
+  private static get(name: string) {
+    try {
+      return getCtxWindow(name);
+    } catch (error) {
+      throw new Error(`Context window '${name}' not available`);
+    }
+  }
+
+  static async askUserDocs(question: string) {
+    const cw = this.get("user-docs");
+    return await cw.ask(question);
+  }
+
+  static async askAPIDocs(question: string) {
+    const cw = this.get("api-docs");
+    return await cw.ask(question);
+  }
+}
+
+// usage.ts
+import { ContextWindowService } from "./context-window.service";
+
+const answer = await ContextWindowService.askUserDocs("How do I start?");
+```
+
+## Common Patterns
+
+### Singleton Pattern
+
+```typescript
+class DocumentationService {
+  private static instance: ContextWindow | null = null;
+
+  static getInstance(): ContextWindow {
+    if (!this.instance) {
+      this.instance = getCtxWindow("documentation");
+    }
+    return this.instance;
+  }
+
+  static async ask(question: string) {
+    const cw = this.getInstance();
+    return await cw.ask(question);
+  }
+}
+```
+
+### Factory Pattern
+
+```typescript
+class ContextWindowFactory {
+  static get(type: "user" | "admin" | "developer"): ContextWindow {
+    const indexMap = {
+      user: "user-docs",
+      admin: "admin-docs",
+      developer: "dev-docs"
+    };
+
+    return getCtxWindow(indexMap[type]);
+  }
+}
+
+// Usage
+const userCW = ContextWindowFactory.get("user");
+const adminCW = ContextWindowFactory.get("admin");
+```
+
+## Error Handling
+
+```typescript
+import { getCtxWindow } from "context-window";
+
+try {
+  const cw = getCtxWindow("my-docs");
+  const result = await cw.ask("Your question");
+  console.log(result);
+} catch (error) {
+  if (error instanceof Error) {
+    if (error.message.includes("not found")) {
+      console.error("Context window hasn't been created yet");
+      // Initialize it or return an error to the user
+    } else {
+      console.error("Unexpected error:", error.message);
+    }
+  }
+}
+```
+
+## Debugging Tips
+
+### List All Context Windows
+
+```typescript
+import { listCtxWindows, getCtxWindow } from "context-window";
+
+// See all available context windows
+const allWindows = listCtxWindows();
+console.log("Available context windows:", allWindows);
+
+// Verify specific window exists
+if (allWindows.includes("my-docs")) {
+  const cw = getCtxWindow("my-docs");
+}
+```
+
+### Log on Retrieval
+
+```typescript
+import { getCtxWindow } from "context-window";
+
+function debugGetCtxWindow(indexName: string) {
+  console.log(`Retrieving context window: ${indexName}`);
+  const cw = getCtxWindow(indexName);
+  console.log(`Successfully retrieved: ${indexName}`);
+  return cw;
+}
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="createCtxWindow" icon="folder-plus" href="/api-reference/create-ctx-window">
+    Create and register a context window
+  </Card>
+  <Card title="hasCtxWindow" icon="check" href="/api-reference/utility-functions#hasctxwindow">
+    Check if a context window exists
+  </Card>
+  <Card title="ask()" icon="message-question" href="/api-reference/ask">
+    Query a context window
+  </Card>
+  <Card title="Utility Functions" icon="wrench" href="/api-reference/utility-functions">
+    Registry management functions
+  </Card>
+</CardGroup>
+

@@ -1,0 +1,426 @@
+---
+title: 'FAQ'
+description: 'Frequently asked questions about context-window'
+---
+
+## General Questions
+
+### Can I use this in production?
+
+Yes! context-window is production-ready with:
+- ✅ TypeScript for type safety
+- ✅ Idempotent operations (safe to re-run)
+- ✅ Proper error handling
+- ✅ Battle-tested dependencies (OpenAI, Pinecone)
+
+**Recommendations for production**:
+- Use environment-specific API keys
+- Implement rate limiting for public endpoints
+- Monitor API costs
+- Add caching for repeated questions
+- Use a secret manager (AWS Secrets Manager, Vault, etc.)
+
+### How much does it cost to run?
+
+**Example: 100-page book (~50,000 words)**
+- Ingestion: ~$0.10 (one time)
+- Per question: ~$0.001-0.002
+- Pinecone storage: Free (under 100K vectors)
+
+**Typical monthly costs** (1000 questions/day):
+- OpenAI: ~$30-60/month
+- Pinecone: Free tier or ~$20/month
+
+**Cost breakdown**:
+- **Embeddings**: $0.02 per 1M tokens (very cheap)
+- **Chat (gpt-4o-mini)**: $0.15 per 1M input tokens
+- **Chat (gpt-4o)**: $5.00 per 1M input tokens
+- **Pinecone**: Free tier includes 100K vectors
+
+### Can I update documents without re-ingesting everything?
+
+Yes! context-window is idempotent:
+- ✅ Add new files → only new files are processed
+- ✅ Update existing files → only changed chunks are updated
+- ✅ Re-run with same files → no duplicates created
+
+The library uses content-based hashing to generate stable chunk IDs, so identical content gets the same ID every time.
+
+### How do I delete old documents?
+
+Currently, you need to delete via Pinecone Console:
+
+1. Go to your Pinecone index
+2. Find the namespace (matches your index name)
+3. Delete specific vectors by ID or delete the entire namespace
+
+<Note>
+  Built-in deletion functionality is on the roadmap for future versions.
+</Note>
+
+## Technical Questions
+
+### How accurate is it?
+
+Accuracy depends on:
+- **Document quality**: Clear, well-written docs → better answers
+- **Chunk size**: Appropriate for your content type
+- **Question phrasing**: Specific questions → better retrieval
+- **Content coverage**: Answer must be IN your documents
+
+context-window uses **strict RAG**, so it won't hallucinate. If it doesn't know, it explicitly says so.
+
+### Can I use a different AI model?
+
+Yes! Change the `model` parameter:
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "my-project",
+  data: ["./docs"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o"  // or "gpt-4-turbo", "gpt-3.5-turbo", etc.
+  },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+**Currently supported**: OpenAI models only
+
+**Future roadmap**: Anthropic (Claude), Cohere, local models
+
+### Does it work with scanned PDFs?
+
+No, scanned PDFs (images of text) won't work. You need:
+- Text-based PDFs (searchable/selectable text)
+- Or use OCR software first to convert scans to text
+
+To test if your PDF is text-based, try selecting text in a PDF viewer. If you can select and copy text, it will work.
+
+### What file formats are supported?
+
+Currently supported:
+- `.txt` - Plain text files
+- `.md` - Markdown files
+- `.pdf` - Text-based PDF documents
+
+**On the roadmap**:
+- `.docx` - Microsoft Word
+- `.html` - HTML documents
+- `.csv` - CSV files
+- `.json` - JSON documents
+- `.epub` - EPUB books
+
+### Can I use this for real-time chat?
+
+Yes, but responses are not streamed. Each question takes:
+- Embedding: ~100-200ms
+- Vector search: ~50-100ms
+- LLM generation: ~1-3 seconds
+
+**Total: 1-4 seconds per question**
+
+For faster responses:
+- Use `gpt-4o-mini` (faster than `gpt-4o`)
+- Reduce `maxContextChars` to send less context
+- Implement client-side caching
+- Show a "thinking" indicator to users
+
+### Can I run this offline?
+
+No, currently requires:
+- Internet connection
+- OpenAI API access
+- Pinecone API access
+
+**Future consideration**: Support for local embeddings and vector stores is being considered.
+
+## Data & Privacy
+
+### What about data privacy?
+
+**Your data flow**:
+1. Files are parsed **locally** on your machine
+2. Only extracted **text** is sent to OpenAI for embedding
+3. Vectors + text are stored in **your** Pinecone index
+4. Questions and context are sent to OpenAI for answers
+
+**Privacy considerations**:
+- OpenAI: Data sent via API is not used for training (per their policy)
+- Pinecone: You control the index, can delete anytime
+- No data is stored by this library itself
+
+**For sensitive data**, consider:
+- Self-hosted vector stores (pgvector)
+- Local LLMs (future feature)
+- OpenAI's Azure deployment (GDPR compliant)
+
+### Where is my data stored?
+
+- **Documents**: Never sent to any service, parsed locally
+- **Text chunks**: Stored in your Pinecone index
+- **Embeddings**: Stored in your Pinecone index
+- **Questions/answers**: Processed by OpenAI, not stored (per their API policy)
+
+You have full control and can delete everything from Pinecone at any time.
+
+### Is my API key secure?
+
+Your API keys should be:
+- ✅ Stored in environment variables (`.env`)
+- ✅ Never committed to version control
+- ✅ Loaded securely in production (secrets manager)
+- ❌ Never hardcoded in your source code
+- ❌ Never logged or exposed to users
+
+```bash
+# .env
+OPENAI_API_KEY=sk-...
+PINECONE_API_KEY=...
+```
+
+## Performance Questions
+
+### Why is ingestion slow?
+
+Ingestion time depends on:
+- Number and size of documents
+- OpenAI API rate limits
+- Network latency
+- Pinecone write throughput
+
+**Typical times**:
+- Small (10 files, 100KB): ~10-30 seconds
+- Medium (100 files, 1MB): ~1-3 minutes
+- Large (1000 files, 10MB): ~10-30 minutes
+
+**To speed up**:
+- Increase chunk size to reduce total chunks
+- Upgrade OpenAI API rate limits
+- Process files in batches
+
+### Why am I getting "I don't know" for every question?
+
+**Possible causes**:
+
+1. **Documents didn't ingest**: Check for errors during `createContextWindow()`
+2. **Wrong namespace**: Ensure you're using the same `indexName`
+3. **Score threshold too high**: Try lowering or removing `scoreThreshold`
+4. **Question too different from content**: Try rephrasing your question
+
+**Debug steps**:
+```typescript
+const cw = await createContextWindow({
+  indexName: "my-docs",
+  data: ["./my-file.pdf"],
+  limits: {
+    topK: 10,              // Retrieve more chunks
+    scoreThreshold: 0,     // Remove filtering
+    maxContextChars: 12000 // Allow more context
+  },
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Can I improve response speed?
+
+Yes! Several strategies:
+
+**1. Use faster model**:
+```typescript
+ai: { provider: "openai", model: "gpt-4o-mini" }
+```
+
+**2. Reduce context**:
+```typescript
+limits: {
+  topK: 5,
+  maxContextChars: 5000
+}
+```
+
+**3. Implement caching**:
+```typescript
+const cache = new Map();
+if (cache.has(question)) return cache.get(question);
+```
+
+**4. Add score threshold**:
+```typescript
+limits: { scoreThreshold: 0.7 }  // Filter low-quality matches
+```
+
+## Troubleshooting
+
+### Error: "Pinecone index not found"
+
+**Solution**: Ensure your Pinecone index exists and the name matches your `.env` configuration.
+
+```bash
+# Check your PINECONE_INDEX value in .env
+PINECONE_INDEX=context-window
+```
+
+Visit [Pinecone Console](https://app.pinecone.io/) to verify the index exists.
+
+### Error: "Incorrect dimensions"
+
+**Solution**: Your Pinecone index must have **1536 dimensions** to work with OpenAI's text-embedding-3-small model.
+
+If you created an index with wrong dimensions:
+1. Delete the old index in Pinecone Console
+2. Create a new one with 1536 dimensions
+3. Re-run your ingestion
+
+### Error: "Invalid API key"
+
+**Solution**: Verify your API keys are correct:
+
+```bash
+# Test OpenAI key
+curl https://api.openai.com/v1/models \
+  -H "Authorization: Bearer $OPENAI_API_KEY"
+
+# If you get an error, regenerate your key at:
+# https://platform.openai.com/api-keys
+```
+
+For Pinecone, check the API Keys section in your [Pinecone Console](https://app.pinecone.io/).
+
+### PDF parsing fails
+
+**Possible causes**:
+- Scanned PDF (image-based)
+- Corrupted file
+- Password-protected PDF
+
+**Solutions**:
+1. Ensure PDF is text-based (try selecting text)
+2. If scanned, use OCR software first
+3. Extract text and save as `.txt` or `.md`
+4. Remove password protection
+
+### Out of memory errors
+
+**Solution**: For large files:
+
+1. Increase Node.js memory:
+```bash
+NODE_OPTIONS=--max-old-space-size=4096 node your-script.js
+```
+
+2. Or split large files into smaller chunks
+
+3. Or increase `chunk.size` to reduce total chunks
+
+## Integration Questions
+
+### Can I use this with Next.js?
+
+Yes! Example:
+
+```typescript
+// app/api/ask/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getCtxWindow } from "context-window";
+
+export async function POST(request: NextRequest) {
+  const { question } = await request.json();
+  const cw = getCtxWindow("docs");
+  const result = await cw.ask(question);
+  return NextResponse.json(result);
+}
+```
+
+Initialize context windows in your startup code or middleware.
+
+### Can I use this with Express?
+
+Yes! See the [Examples](/examples) page for complete Express integration examples.
+
+### Does it work with TypeScript?
+
+Yes! context-window is written in TypeScript with full type definitions:
+
+```typescript
+import { createContextWindow, ContextWindow, AskResult } from "context-window";
+
+const cw: ContextWindow = await createContextWindow({ /* ... */ });
+const result: AskResult = await cw.ask("Your question");
+```
+
+### Can I use it in a serverless function?
+
+Yes, but be aware:
+- Cold starts will be slower (context window initialization)
+- Consider creating context windows outside the handler
+- Use the registry pattern (`createCtxWindow` / `getCtxWindow`)
+- May need to increase function timeout
+
+## Billing & Costs
+
+### How can I reduce costs?
+
+**1. Optimize chunk size**:
+```typescript
+chunk: { size: 2000, overlap: 100 }  // Fewer chunks
+```
+
+**2. Use score threshold**:
+```typescript
+limits: { scoreThreshold: 0.6 }  // Filter low-quality matches
+```
+
+**3. Reduce context**:
+```typescript
+limits: {
+  topK: 5,
+  maxContextChars: 5000
+}
+```
+
+**4. Use cheaper model**:
+```typescript
+ai: { provider: "openai", model: "gpt-4o-mini" }
+```
+
+**5. Implement caching** for repeated questions
+
+### Do I get charged for ingestion?
+
+Yes, ingestion costs include:
+- OpenAI embeddings: ~$0.02 per 1M tokens
+- Pinecone storage: Free tier (100K vectors) or paid
+
+But it's a one-time cost per document. Re-ingesting the same documents doesn't create duplicates.
+
+### What's included in the free tier?
+
+**OpenAI**:
+- New accounts may have trial credits
+- After that, pay-per-use
+
+**Pinecone**:
+- 1 serverless index
+- 100K vectors (~100MB of text)
+- Sufficient for testing and small projects
+
+## Still Have Questions?
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/hamittokay/context-window/issues">
+    Report bugs or request features
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting">
+    Solve common problems
+  </Card>
+  <Card title="Examples" icon="code" href="/examples">
+    See complete code examples
+  </Card>
+  <Card title="Best Practices" icon="star" href="/best-practices">
+    Optimization tips
+  </Card>
+</CardGroup>
+

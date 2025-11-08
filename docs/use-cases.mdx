@@ -1,0 +1,639 @@
+---
+title: 'Use Cases'
+description: 'Real-world applications and scenarios for context-window'
+---
+
+## Overview
+
+context-window is perfect for any application that needs to answer questions from your documents. The strict RAG approach ensures accurate, verifiable answers without hallucinations.
+
+## Document Q&A Systems
+
+Build chatbots and assistants that answer questions from your documentation.
+
+### Knowledge Base Bot
+
+```typescript
+import { createContextWindow } from "context-window";
+
+const kb = await createContextWindow({
+  indexName: "knowledge-base",
+  data: ["./docs/kb"],
+  ai: { provider: "openai", model: "gpt-4o-mini" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// User asks a question
+const result = await kb.ask("How do I reset my password?");
+console.log(result.text);
+console.log(`Sources: ${result.sources.join(", ")}`);
+```
+
+<Check>
+  **Perfect for**: Customer support, internal documentation, help centers
+</Check>
+
+### Product Documentation Assistant
+
+```typescript
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+// Initialize documentation
+await createCtxWindow({
+  indexName: "product-docs",
+  data: [
+    "./docs/installation",
+    "./docs/configuration",
+    "./docs/api",
+    "./docs/troubleshooting"
+  ],
+  chunk: { size: 1200, overlap: 180 },
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Use in your application
+async function getHelp(userQuestion: string) {
+  const docs = getCtxWindow("product-docs");
+  return await docs.ask(userQuestion);
+}
+```
+
+**Benefits**:
+- 24/7 availability
+- Instant answers
+- Always up-to-date with your docs
+- Reduces support ticket volume
+
+---
+
+## Research Assistant
+
+Query across multiple research papers, articles, or books.
+
+### Academic Research
+
+```typescript
+const research = await createContextWindow({
+  indexName: "research-papers",
+  data: [
+    "./papers/machine-learning",
+    "./papers/nlp",
+    "./papers/computer-vision"
+  ],
+  chunk: {
+    size: 1500,    // Larger chunks for academic content
+    overlap: 250
+  },
+  limits: {
+    topK: 10,      // Retrieve more context
+    maxContextChars: 12000
+  },
+  ai: { provider: "openai", model: "gpt-4o" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Research queries
+const result1 = await research.ask(
+  "What are the main approaches to attention mechanisms in transformers?"
+);
+
+const result2 = await research.ask(
+  "Compare ResNet and EfficientNet architectures"
+);
+```
+
+<Check>
+  **Perfect for**: Literature reviews, research synthesis, academic writing
+</Check>
+
+### Market Research Analysis
+
+```typescript
+const market = await createContextWindow({
+  indexName: "market-research",
+  data: [
+    "./reports/2023",
+    "./reports/2024",
+    "./competitor-analysis",
+    "./industry-trends"
+  ],
+  ai: { provider: "openai", model: "gpt-4o" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Business intelligence queries
+const competitor = await market.ask(
+  "What are the main competitive advantages of Company X?"
+);
+
+const trends = await market.ask(
+  "What emerging trends are mentioned in the 2024 reports?"
+);
+```
+
+---
+
+## Business Intelligence
+
+Answer questions from reports, presentations, and internal documents.
+
+### Executive Dashboard Bot
+
+```typescript
+import express from "express";
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+const app = express();
+app.use(express.json());
+
+// Initialize business intelligence sources
+await createCtxWindow({
+  indexName: "quarterly-reports",
+  data: ["./reports/quarterly"],
+  ai: { provider: "openai", model: "gpt-4o" },
+  vectorStore: { provider: "pinecone" }
+});
+
+await createCtxWindow({
+  indexName: "sales-data",
+  data: ["./reports/sales"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// API endpoint for executives
+app.post("/api/business-intelligence", async (req, res) => {
+  const { question, source } = req.body;
+
+  const cw = getCtxWindow(
+    source === "sales" ? "sales-data" : "quarterly-reports"
+  );
+
+  const result = await cw.ask(question);
+
+  res.json({
+    answer: result.text,
+    sources: result.sources,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.listen(3000);
+```
+
+<Check>
+  **Perfect for**: Executive summaries, data analysis, business reporting
+</Check>
+
+---
+
+## Study Tool & Education
+
+Create AI tutors that answer questions from textbooks and lecture notes.
+
+### Study Assistant
+
+```typescript
+const studyAssistant = await createContextWindow({
+  indexName: "biology-101",
+  data: [
+    "./textbooks/biology",
+    "./lecture-notes",
+    "./study-guides"
+  ],
+  chunk: { size: 1000, overlap: 150 },
+  ai: { provider: "openai", model: "gpt-4o-mini" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Student questions
+const q1 = await studyAssistant.ask(
+  "Explain the process of photosynthesis"
+);
+
+const q2 = await studyAssistant.ask(
+  "What is the difference between mitosis and meiosis?"
+);
+
+const q3 = await studyAssistant.ask(
+  "What are the main parts of a cell?"
+);
+```
+
+### Interactive Learning Platform
+
+```typescript
+class CourseAssistant {
+  private courses = new Map<string, string>();
+
+  async createCourse(courseId: string, materials: string[]) {
+    await createCtxWindow({
+      indexName: `course-${courseId}`,
+      data: materials,
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+    this.courses.set(courseId, `course-${courseId}`);
+  }
+
+  async askQuestion(courseId: string, question: string) {
+    const indexName = this.courses.get(courseId);
+    if (!indexName) {
+      throw new Error("Course not found");
+    }
+
+    const cw = getCtxWindow(indexName);
+    return await cw.ask(question);
+  }
+
+  async getQuizQuestions(courseId: string, topic: string) {
+    const result = await this.askQuestion(
+      courseId,
+      `Generate 5 quiz questions about ${topic}`
+    );
+    return result;
+  }
+}
+```
+
+<Check>
+  **Perfect for**: E-learning platforms, homework help, exam preparation
+</Check>
+
+---
+
+## Customer Support
+
+Build support bots that answer from product documentation and FAQs.
+
+### Support Ticket Automation
+
+```typescript
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+// Initialize support knowledge base
+await createCtxWindow({
+  indexName: "support-kb",
+  data: [
+    "./support/faq",
+    "./support/troubleshooting",
+    "./support/how-to-guides"
+  ],
+  limits: {
+    topK: 8,
+    scoreThreshold: 0.7  // High confidence answers only
+  },
+  ai: { provider: "openai", model: "gpt-4o-mini" },
+  vectorStore: { provider: "pinecone" }
+});
+
+async function handleSupportTicket(ticketContent: string) {
+  const support = getCtxWindow("support-kb");
+  const result = await support.ask(ticketContent);
+
+  // Check if we found a good answer
+  if (result.sources.length > 0 &&
+      !result.text.includes("I don't know")) {
+    return {
+      status: "auto-resolved",
+      answer: result.text,
+      sources: result.sources
+    };
+  } else {
+    return {
+      status: "needs-human",
+      message: "Escalating to support agent"
+    };
+  }
+}
+```
+
+### Multi-Channel Support
+
+```typescript
+class SupportBot {
+  private kb: ContextWindow;
+
+  async initialize() {
+    await createCtxWindow({
+      indexName: "support",
+      data: ["./support-docs"],
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+    this.kb = getCtxWindow("support");
+  }
+
+  async handleEmailSupport(email: string) {
+    const result = await this.kb.ask(email);
+    return this.formatEmailResponse(result);
+  }
+
+  async handleChatSupport(message: string) {
+    const result = await this.kb.ask(message);
+    return this.formatChatResponse(result);
+  }
+
+  async handlePhoneScript(query: string) {
+    const result = await this.kb.ask(query);
+    return this.formatPhoneScript(result);
+  }
+
+  private formatEmailResponse(result: AskResult) {
+    return {
+      body: result.text,
+      footer: `Sources: ${result.sources.join(", ")}`
+    };
+  }
+
+  private formatChatResponse(result: AskResult) {
+    return {
+      message: result.text,
+      quickReplies: ["Was this helpful?", "Talk to agent"]
+    };
+  }
+
+  private formatPhoneScript(result: AskResult) {
+    return {
+      script: result.text,
+      followUp: "Would you like me to email you this information?"
+    };
+  }
+}
+```
+
+<Check>
+  **Perfect for**: Help desks, chatbots, automated support systems
+</Check>
+
+---
+
+## Legal & Compliance
+
+Search and query through contracts, policies, and legal documents.
+
+### Contract Analysis
+
+```typescript
+const legal = await createContextWindow({
+  indexName: "contracts",
+  data: ["./contracts", "./agreements"],
+  chunk: {
+    size: 1500,    // Large chunks for legal context
+    overlap: 300   // High overlap for continuity
+  },
+  limits: {
+    topK: 5,               // Fewer, more relevant results
+    scoreThreshold: 0.75,  // High confidence only
+    maxContextChars: 8000
+  },
+  ai: { provider: "openai", model: "gpt-4o" },  // Best model
+  vectorStore: { provider: "pinecone" }
+});
+
+// Legal queries
+const liability = await legal.ask(
+  "What are the liability clauses in the vendor contracts?"
+);
+
+const termination = await legal.ask(
+  "What are the termination conditions?"
+);
+
+const pricing = await legal.ask(
+  "What are the payment terms and pricing structures?"
+);
+```
+
+### Policy Compliance Checker
+
+```typescript
+const policies = await createContextWindow({
+  indexName: "company-policies",
+  data: [
+    "./policies/hr",
+    "./policies/security",
+    "./policies/data-privacy"
+  ],
+  ai: { provider: "openai", model: "gpt-4o" },
+  vectorStore: { provider: "pinecone" }
+});
+
+async function checkCompliance(action: string) {
+  const result = await policies.ask(
+    `Is this action compliant with company policy: ${action}`
+  );
+
+  return {
+    compliant: !result.text.includes("not compliant"),
+    explanation: result.text,
+    relevantPolicies: result.sources
+  };
+}
+```
+
+<Check>
+  **Perfect for**: Due diligence, compliance checks, contract review
+</Check>
+
+---
+
+## Content Discovery
+
+Find relevant information across large document collections.
+
+### Document Search Engine
+
+```typescript
+const archive = await createContextWindow({
+  indexName: "company-archive",
+  data: [
+    "./archive/2020",
+    "./archive/2021",
+    "./archive/2022",
+    "./archive/2023",
+    "./archive/2024"
+  ],
+  limits: {
+    topK: 12,              // Broad search
+    maxContextChars: 12000
+  },
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Semantic search across years
+const projectInfo = await archive.ask(
+  "Find information about Project Phoenix from 2022"
+);
+
+const budgetInfo = await archive.ask(
+  "What were the budget allocations for marketing?"
+);
+```
+
+### Internal Wiki Search
+
+```typescript
+class WikiSearch {
+  private wiki: ContextWindow;
+
+  async initialize() {
+    await createCtxWindow({
+      indexName: "company-wiki",
+      data: ["./wiki"],
+      chunk: { size: 1200, overlap: 180 },
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+    this.wiki = getCtxWindow("company-wiki");
+  }
+
+  async search(query: string) {
+    const result = await this.wiki.ask(query);
+    return {
+      summary: result.text,
+      relatedPages: result.sources,
+      confidence: result.sources.length > 0 ? "high" : "low"
+    };
+  }
+
+  async findRelated(topic: string) {
+    return await this.search(`Find all information related to ${topic}`);
+  }
+}
+```
+
+<Check>
+  **Perfect for**: Enterprise search, knowledge management, archive exploration
+</Check>
+
+---
+
+## Specialized Applications
+
+### Medical Information Assistant
+
+```typescript
+const medical = await createContextWindow({
+  indexName: "medical-literature",
+  data: ["./medical-papers", "./clinical-guidelines"],
+  chunk: { size: 1500, overlap: 250 },
+  limits: {
+    topK: 10,
+    scoreThreshold: 0.8  // Very high confidence for medical info
+  },
+  ai: { provider: "openai", model: "gpt-4o" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Medical queries (for informational purposes only)
+const treatment = await medical.ask(
+  "What are the standard treatment protocols for condition X?"
+);
+```
+
+<Warning>
+  Medical applications require professional oversight. Always include disclaimers and consult healthcare professionals.
+</Warning>
+
+### Real Estate Property Search
+
+```typescript
+const properties = await createContextWindow({
+  indexName: "property-listings",
+  data: ["./listings", "./property-details"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Natural language property search
+const familyHome = await properties.ask(
+  "Find 3-bedroom houses near good schools under $500k"
+);
+
+const investment = await properties.ask(
+  "Show properties with high rental yield potential"
+);
+```
+
+### Recipe & Cooking Assistant
+
+```typescript
+const recipes = await createContextWindow({
+  indexName: "recipe-collection",
+  data: ["./recipes", "./cookbooks"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Cooking queries
+const dinner = await recipes.ask(
+  "Suggest a vegetarian dinner recipe with ingredients I have: tomatoes, pasta, cheese"
+);
+
+const dessert = await recipes.ask(
+  "Find a chocolate dessert recipe that takes less than 30 minutes"
+);
+```
+
+## Choosing the Right Configuration
+
+Different use cases need different settings:
+
+<CardGroup cols={2}>
+  <Card title="High Accuracy" icon="bullseye">
+    Legal, medical, compliance
+
+    - Model: `gpt-4o`
+    - Chunk size: 1500
+    - topK: 5-10
+    - scoreThreshold: 0.75-0.85
+  </Card>
+
+  <Card title="Fast Response" icon="bolt">
+    Customer support, chatbots
+
+    - Model: `gpt-4o-mini`
+    - Chunk size: 1000
+    - topK: 5
+    - scoreThreshold: 0.7
+  </Card>
+
+  <Card title="Comprehensive" icon="book">
+    Research, analysis
+
+    - Model: `gpt-4o`
+    - Chunk size: 1500
+    - topK: 10-15
+    - scoreThreshold: 0
+  </Card>
+
+  <Card title="Cost-Effective" icon="dollar-sign">
+    FAQ, simple queries
+
+    - Model: `gpt-4o-mini`
+    - Chunk size: 2000
+    - topK: 5
+    - scoreThreshold: 0.6
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Examples" icon="code" href="/examples">
+    See complete code examples
+  </Card>
+  <Card title="Best Practices" icon="star" href="/best-practices">
+    Optimize for your use case
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Explore all configuration options
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Build your first application
+  </Card>
+</CardGroup>
+

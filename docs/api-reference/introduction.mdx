@@ -1,0 +1,200 @@
+---
+title: 'API Reference'
+description: 'Complete reference for the context-window API'
+---
+
+## Overview
+
+The context-window library provides a simple, type-safe API for building RAG (Retrieval-Augmented Generation) applications. The API is designed to be intuitive while offering powerful customization options.
+
+## Installation
+
+```bash
+npm install context-window
+```
+
+## Basic Import
+
+All main functions are exported from the root package:
+
+```typescript
+import {
+  createContextWindow,
+  createCtxWindow,
+  getCtxWindow,
+  hasCtxWindow,
+  deleteCtxWindow,
+  clearCtxWindows,
+  listCtxWindows
+} from "context-window";
+```
+
+## Quick Start
+
+The simplest way to use context-window:
+
+```typescript
+import { createContextWindow } from "context-window";
+
+const cw = await createContextWindow({
+  indexName: "my-docs",
+  data: ["./documents"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+const result = await cw.ask("What is this about?");
+console.log(result.text);
+```
+
+## API Patterns
+
+context-window offers two main patterns for managing context windows:
+
+### Direct Pattern
+
+Create and use a context window directly:
+
+```typescript
+const cw = await createContextWindow({ /* options */ });
+const result = await cw.ask("Your question");
+```
+
+<Check>
+  **Best for**: Single-use scenarios, scripts, simple applications
+</Check>
+
+### Registry Pattern
+
+Create, register, and retrieve context windows by name:
+
+```typescript
+// Create and register
+await createCtxWindow({ indexName: "docs", /* ... */ });
+
+// Retrieve later (same process or different module)
+const cw = getCtxWindow("docs");
+const result = await cw.ask("Your question");
+```
+
+<Check>
+  **Best for**: Multiple context windows, complex applications, modular architectures
+</Check>
+
+## Core Concepts
+
+### Context Window
+
+A **Context Window** is an instance that manages:
+- Document ingestion and chunking
+- Vector embeddings and storage
+- Semantic search and retrieval
+- Answer generation with source citations
+
+### Index Name
+
+Each context window requires a unique **index name** that:
+- Identifies the Pinecone namespace for data isolation
+- Serves as the key for the registry pattern
+- Should be descriptive (e.g., `"user-manual"`, `"api-docs"`)
+
+### Idempotency
+
+context-window is **idempotent** by design:
+- Same files → same chunk IDs → updates instead of duplicates
+- Safe to re-run ingestion without creating redundant data
+- Content-based hashing ensures consistency
+
+## API Organization
+
+<CardGroup cols={2}>
+  <Card title="Core Functions" icon="cube" href="/api-reference/create-context-window">
+    Main functions for creating and managing context windows
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/api-reference/configuration">
+    Detailed configuration options for AI, storage, chunking, and limits
+  </Card>
+  <Card title="Utility Functions" icon="wrench" href="/api-reference/utility-functions">
+    Helper functions for the registry pattern
+  </Card>
+  <Card title="ask() Method" icon="message-question" href="/api-reference/ask">
+    Query your context window for answers
+  </Card>
+</CardGroup>
+
+## Type Safety
+
+context-window is written in TypeScript with full type definitions:
+
+```typescript
+interface CreateContextWindowOptions {
+  indexName: string;
+  data: string | string[];
+  ai?: AIConfig;
+  vectorStore?: VectorStoreConfig;
+  chunk?: ChunkConfig;
+  limits?: LimitsConfig;
+}
+
+interface AskResult {
+  text: string;
+  sources: string[];
+}
+```
+
+All types are exported and available for your TypeScript projects.
+
+## Environment Variables
+
+Required environment variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENAI_API_KEY` | Yes | OpenAI API key for embeddings and completions |
+| `PINECONE_API_KEY` | Yes | Pinecone API key for vector storage |
+| `PINECONE_INDEX` | No | Default Pinecone index name (default: `"context-window"`) |
+| `PINECONE_ENVIRONMENT` | No | Pinecone region (default: `"us-east-1"`) |
+
+## Error Handling
+
+All functions use standard error handling patterns:
+
+```typescript
+try {
+  const cw = await createContextWindow({
+    indexName: "my-docs",
+    data: ["./documents"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+
+  const result = await cw.ask("Your question");
+} catch (error) {
+  if (error instanceof Error) {
+    console.error("Error:", error.message);
+  }
+}
+```
+
+Common errors:
+- **Invalid API keys**: Check your `.env` configuration
+- **Index not found**: Ensure your Pinecone index exists
+- **Incorrect dimensions**: Pinecone index must have 1536 dimensions
+- **File not found**: Verify file paths in the `data` parameter
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="createContextWindow" icon="plus" href="/api-reference/create-context-window">
+    Learn about the direct creation pattern
+  </Card>
+  <Card title="createCtxWindow" icon="folder-plus" href="/api-reference/create-ctx-window">
+    Explore the registry pattern
+  </Card>
+  <Card title="Configuration Options" icon="gear" href="/api-reference/configuration">
+    Customize AI models, chunking, and retrieval
+  </Card>
+  <Card title="Examples" icon="code" href="/examples">
+    See complete code examples
+  </Card>
+</CardGroup>

@@ -1,0 +1,366 @@
+---
+title: 'createCtxWindow'
+description: 'Create and register a context window in the global registry'
+---
+
+## Overview
+
+`createCtxWindow()` creates a context window and registers it in the global registry. This allows you to retrieve the instance later using `getCtxWindow()` without passing it around your application.
+
+<Check>
+  Use this when you need to access the same context window from multiple modules or functions.
+</Check>
+
+## Signature
+
+```typescript
+async function createCtxWindow(
+  options: CreateContextWindowOptions
+): Promise<void>
+```
+
+## Parameters
+
+<ParamField path="options" type="CreateContextWindowOptions" required>
+  Same configuration object as [`createContextWindow()`](/api-reference/create-context-window)
+
+  The `indexName` serves as both the Pinecone namespace and the registry key.
+</ParamField>
+
+<Note>
+  See [createContextWindow documentation](/api-reference/create-context-window) for detailed parameter descriptions.
+</Note>
+
+## Return Value
+
+`createCtxWindow()` returns a Promise that resolves to `void`. The created instance is stored in the registry and can be retrieved using `getCtxWindow()`.
+
+## Registry Pattern
+
+The registry pattern is useful for applications with multiple context windows or when you need to access instances across different modules.
+
+```typescript
+// module-a.ts - Create and register
+import { createCtxWindow } from "context-window";
+
+await createCtxWindow({
+  indexName: "user-docs",
+  data: ["./docs"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// module-b.ts - Retrieve and use
+import { getCtxWindow } from "context-window";
+
+const cw = getCtxWindow("user-docs");
+const result = await cw.ask("How do I get started?");
+```
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+// Create and register
+await createCtxWindow({
+  indexName: "api-docs",
+  data: ["./api-documentation"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Retrieve later
+const cw = getCtxWindow("api-docs");
+const result = await cw.ask("What authentication methods are supported?");
+```
+
+### Multiple Context Windows
+
+```typescript
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+// Create multiple context windows for different purposes
+await Promise.all([
+  createCtxWindow({
+    indexName: "user-manual",
+    data: ["./manuals/user"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  }),
+  createCtxWindow({
+    indexName: "admin-manual",
+    data: ["./manuals/admin"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  }),
+  createCtxWindow({
+    indexName: "developer-docs",
+    data: ["./docs/developers"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  })
+]);
+
+// Use them independently
+const userCW = getCtxWindow("user-manual");
+const adminCW = getCtxWindow("admin-manual");
+const devCW = getCtxWindow("developer-docs");
+
+const userAnswer = await userCW.ask("How do I change my password?");
+const adminAnswer = await adminCW.ask("How do I manage users?");
+const devAnswer = await devCW.ask("How do I integrate the API?");
+```
+
+### API Route Example (Express)
+
+```typescript
+import express from "express";
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+const app = express();
+
+// Initialize on startup
+await createCtxWindow({
+  indexName: "knowledge-base",
+  data: ["./knowledge-base"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Use in route handlers
+app.post("/api/ask", async (req, res) => {
+  try {
+    const { question } = req.body;
+    const cw = getCtxWindow("knowledge-base");
+    const result = await cw.ask(question);
+
+    res.json({
+      answer: result.text,
+      sources: result.sources
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to process question" });
+  }
+});
+
+app.listen(3000);
+```
+
+### Modular Application
+
+```typescript
+// init.ts - Initialization module
+import { createCtxWindow } from "context-window";
+
+export async function initializeContextWindows() {
+  console.log("Initializing context windows...");
+
+  await createCtxWindow({
+    indexName: "products",
+    data: ["./data/products"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+
+  await createCtxWindow({
+    indexName: "support",
+    data: ["./data/support"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+
+  console.log("Context windows ready!");
+}
+
+// products.service.ts - Product service
+import { getCtxWindow } from "context-window";
+
+export async function getProductInfo(question: string) {
+  const cw = getCtxWindow("products");
+  return await cw.ask(question);
+}
+
+// support.service.ts - Support service
+import { getCtxWindow } from "context-window";
+
+export async function getSupportAnswer(question: string) {
+  const cw = getCtxWindow("support");
+  return await cw.ask(question);
+}
+
+// main.ts - Entry point
+import { initializeContextWindows } from "./init";
+import { getProductInfo } from "./products.service";
+import { getSupportAnswer } from "./support.service";
+
+async function main() {
+  await initializeContextWindows();
+
+  const productAnswer = await getProductInfo("What are the features?");
+  const supportAnswer = await getSupportAnswer("How do I reset my password?");
+
+  console.log("Product:", productAnswer.text);
+  console.log("Support:", supportAnswer.text);
+}
+
+main();
+```
+
+## Best Practices
+
+### 1. Initialize Early
+
+Create and register context windows during application startup:
+
+```typescript
+// Good: Initialize once at startup
+async function startup() {
+  await createCtxWindow({ indexName: "docs", /* ... */ });
+  await startServer();
+}
+
+// Avoid: Creating on every request
+app.get("/ask", async (req, res) => {
+  // Bad: Re-creating on every request
+  await createCtxWindow({ indexName: "docs", /* ... */ });
+  // ...
+});
+```
+
+### 2. Use Descriptive Names
+
+Choose clear, descriptive index names:
+
+```typescript
+// Good
+await createCtxWindow({ indexName: "user-documentation", /* ... */ });
+await createCtxWindow({ indexName: "api-reference", /* ... */ });
+await createCtxWindow({ indexName: "troubleshooting-guide", /* ... */ });
+
+// Avoid
+await createCtxWindow({ indexName: "docs1", /* ... */ });
+await createCtxWindow({ indexName: "data", /* ... */ });
+```
+
+### 3. Check Existence
+
+Before creating, check if a context window already exists:
+
+```typescript
+import { hasCtxWindow, createCtxWindow } from "context-window";
+
+if (!hasCtxWindow("my-docs")) {
+  await createCtxWindow({
+    indexName: "my-docs",
+    data: ["./docs"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+}
+```
+
+### 4. Cleanup When Done
+
+Remove context windows when they're no longer needed:
+
+```typescript
+import { deleteCtxWindow } from "context-window";
+
+// When done with a specific context window
+deleteCtxWindow("temporary-docs");
+
+// Or clear all
+import { clearCtxWindows } from "context-window";
+clearCtxWindows();
+```
+
+## Error Handling
+
+```typescript
+import { createCtxWindow, getCtxWindow } from "context-window";
+
+try {
+  await createCtxWindow({
+    indexName: "my-docs",
+    data: ["./documents"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+} catch (error) {
+  console.error("Failed to create context window:", error);
+  process.exit(1);
+}
+
+// Later, when retrieving
+try {
+  const cw = getCtxWindow("my-docs");
+  const result = await cw.ask("Your question");
+} catch (error) {
+  // Error will be thrown if "my-docs" doesn't exist
+  console.error("Context window not found:", error);
+}
+```
+
+## Utility Functions
+
+The registry pattern works with several utility functions:
+
+<CardGroup cols={2}>
+  <Card title="getCtxWindow()" icon="download" href="/api-reference/get-ctx-window">
+    Retrieve a registered context window
+  </Card>
+  <Card title="hasCtxWindow()" icon="check" href="/api-reference/utility-functions#hasctxwindow">
+    Check if a context window exists
+  </Card>
+  <Card title="deleteCtxWindow()" icon="trash" href="/api-reference/utility-functions#deletectxwindow">
+    Remove a context window from registry
+  </Card>
+  <Card title="listCtxWindows()" icon="list" href="/api-reference/utility-functions#listctxwindows">
+    Get all registered index names
+  </Card>
+</CardGroup>
+
+## When to Use
+
+<Tabs>
+  <Tab title="Use createCtxWindow">
+    **Choose `createCtxWindow()` when:**
+
+    - You need to access the context window from multiple modules
+    - Building a web server with route handlers
+    - Managing multiple context windows
+    - Want cleaner code without passing instances around
+    - Need global access to instances
+  </Tab>
+
+  <Tab title="Use createContextWindow">
+    **Choose `createContextWindow()` when:**
+
+    - Building a simple script or CLI tool
+    - Only need one context window
+    - Prefer explicit instance management
+    - Want to avoid global state
+    - Need to pass instances as dependencies
+  </Tab>
+</Tabs>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="createContextWindow" icon="plus" href="/api-reference/create-context-window">
+    Direct creation without registry
+  </Card>
+  <Card title="getCtxWindow" icon="download" href="/api-reference/get-ctx-window">
+    Retrieve registered instances
+  </Card>
+  <Card title="Utility Functions" icon="wrench" href="/api-reference/utility-functions">
+    Registry management functions
+  </Card>
+  <Card title="ask()" icon="message-question" href="/api-reference/ask">
+    Query context windows
+  </Card>
+</CardGroup>
+

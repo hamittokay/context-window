@@ -1,0 +1,108 @@
+---
+title: "Introduction"
+description: "A production-grade RAG library for building AI applications that answer questions from your documents"
+---
+
+## Welcome to context-window
+
+Building AI applications that answer questions from your documents shouldn't be complicated. **context-window** provides a simple, elegant API that handles the entire RAG (Retrieval-Augmented Generation) pipeline.
+
+<Card
+  title="Quick Start"
+  icon="rocket"
+  href="/quickstart"
+  horizontal
+>
+  Get started in minutes with our step-by-step guide
+</Card>
+
+## Why context-window?
+
+context-window eliminates the complexity of building RAG systems by providing a complete solution:
+
+<CardGroup cols={2}>
+  <Card title="📄 Ingest Documents" icon="file-arrow-up">
+    Support for `.txt`, `.md`, and `.pdf` files with automatic text extraction
+  </Card>
+  <Card title="✂️ Smart Chunking" icon="scissors">
+    Intelligent text chunking with configurable overlap to preserve context
+  </Card>
+  <Card title="🧮 OpenAI Embeddings" icon="brain">
+    Powered by OpenAI's text-embedding-3-small model for high-quality vector representations
+  </Card>
+  <Card title="🗄️ Pinecone Storage" icon="database">
+    Scalable vector storage with Pinecone's serverless infrastructure
+  </Card>
+  <Card title="🔍 Semantic Search" icon="magnifying-glass">
+    Fast similarity search to retrieve relevant context for any question
+  </Card>
+  <Card title="💬 Accurate Answers" icon="message-check">
+    LLM-powered answers with source citations and strict RAG guardrails
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Strict RAG - No Hallucinations
+
+Unlike general chat models, context-window only answers from YOUR documents. If the answer isn't found, it says "I don't know based on the uploaded files."
+
+### Idempotent Ingestion
+
+Re-running ingestion with the same files won't create duplicates. Chunk IDs are content-based and stable, making updates safe and predictable.
+
+### Source Citations
+
+Every answer includes references to the source documents used, making it easy to verify information and maintain trust.
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="play" href="/quickstart">
+    Set up your first context window in under 5 minutes
+  </Card>
+  <Card title="Use Cases" icon="lightbulb" href="/use-cases">
+    Explore real-world applications and examples
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Complete API documentation and configuration options
+  </Card>
+  <Card title="Best Practices" icon="star" href="/best-practices">
+    Tips for optimizing performance and accuracy
+  </Card>
+</CardGroup>
+
+## Quick Example
+
+```typescript
+import { createContextWindow } from "context-window";
+
+const cw = await createContextWindow({
+  indexName: "my-docs",
+  data: ["./documents"],
+  ai: { provider: "openai", model: "gpt-4o-mini" },
+  vectorStore: { provider: "pinecone" }
+});
+
+const { text, sources } = await cw.ask("What is the main topic?");
+console.log(text);     // AI-generated answer
+console.log(sources);  // ["document1.pdf", "notes.md"]
+```
+
+## What You'll Need
+
+<CardGroup cols={3}>
+  <Card title="Node.js 18+" icon="node-js">
+    Modern JavaScript runtime
+  </Card>
+  <Card title="OpenAI API" icon="key">
+    For embeddings and completions
+  </Card>
+  <Card title="Pinecone Account" icon="database">
+    Free tier includes 100K vectors
+  </Card>
+</CardGroup>
+
+<Note>
+  Ready to build? Head over to the [Quick Start guide](/quickstart) to set up your first context window.
+</Note>

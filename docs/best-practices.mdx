@@ -1,0 +1,632 @@
+---
+title: 'Best Practices'
+description: 'Guidelines for optimal performance, accuracy, and cost efficiency'
+---
+
+## Document Preparation
+
+### Organize Your Files
+
+Structure documents logically for better retrieval:
+
+```
+./documentation/
+├── getting-started/
+│   ├── installation.md
+│   └── quickstart.md
+├── guides/
+│   ├── configuration.md
+│   └── deployment.md
+└── api/
+    ├── authentication.md
+    └── endpoints.md
+```
+
+**Benefits**:
+- Easier to maintain
+- Better source citations
+- Logical grouping improves context
+
+### Use Descriptive Filenames
+
+```typescript
+// Good
+data: [
+  "./user-authentication-guide.md",
+  "./api-rate-limiting.md",
+  "./troubleshooting-common-errors.md"
+]
+
+// Avoid
+data: [
+  "./doc1.md",
+  "./file2.md",
+  "./temp.md"
+]
+```
+
+Descriptive names appear in source citations and help users verify information.
+
+### Clean Your Documents
+
+**Remove unnecessary content**:
+- Page numbers
+- Headers/footers
+- Navigation elements
+- Duplicate content
+
+**Keep content focused**:
+- One topic per document
+- Clear sections
+- Consistent formatting
+
+##Chunk Size Selection
+
+### Choosing the Right Size
+
+The chunk size directly affects answer quality:
+
+<Tabs>
+  <Tab title="Small Chunks (500-800)">
+    **Best for**:
+    - FAQ documents
+    - Glossaries
+    - Quick facts
+    - Definition lookups
+
+    **Example**:
+    ```typescript
+    chunk: { size: 600, overlap: 100 }
+    ```
+
+    **Pros**:
+    - Precise answers
+    - Less noise
+    - Good for specific questions
+
+    **Cons**:
+    - May miss broader context
+    - More chunks = more vectors = higher cost
+  </Tab>
+
+  <Tab title="Medium Chunks (1000-1500)">
+    **Best for**:
+    - General documentation
+    - User manuals
+    - Technical guides
+    - Most use cases
+
+    **Example**:
+    ```typescript
+    chunk: { size: 1200, overlap: 180 }
+    ```
+
+    **Pros**:
+    - Balanced approach
+    - Good context preservation
+    - Cost-effective
+
+    **Cons**:
+    - Not optimal for extreme cases
+  </Tab>
+
+  <Tab title="Large Chunks (1500-2000)">
+    **Best for**:
+    - Legal documents
+    - Research papers
+    - Complex explanations
+    - Narrative content
+
+    **Example**:
+    ```typescript
+    chunk: { size: 1800, overlap: 270 }
+    ```
+
+    **Pros**:
+    - Full context
+    - Fewer total chunks
+    - Better for complex topics
+
+    **Cons**:
+    - May include irrelevant information
+    - Longer processing time
+  </Tab>
+</Tabs>
+
+### Overlap Guidelines
+
+Set overlap to 10-20% of chunk size:
+
+```typescript
+// Good ratios
+chunk: { size: 1000, overlap: 150 }  // 15%
+chunk: { size: 1500, overlap: 250 }  // 16%
+chunk: { size: 2000, overlap: 300 }  // 15%
+
+// Too little overlap (may lose context)
+chunk: { size: 1000, overlap: 50 }   // 5%
+
+// Too much overlap (wasteful)
+chunk: { size: 1000, overlap: 500 }  // 50%
+```
+
+## Retrieval Optimization
+
+### topK Configuration
+
+Choose based on your needs:
+
+```typescript
+// Precise, focused answers
+limits: { topK: 3 }
+
+// Balanced (default)
+limits: { topK: 8 }
+
+// Comprehensive coverage
+limits: { topK: 15 }
+```
+
+**Guidelines**:
+- Start with 8, adjust based on results
+- Increase if answers seem incomplete
+- Decrease for faster responses and lower costs
+
+### Score Threshold
+
+Filter low-quality matches:
+
+```typescript
+// No filtering (default) - include all matches
+limits: { scoreThreshold: 0 }
+
+// Moderate confidence
+limits: { scoreThreshold: 0.6 }
+
+// High confidence only
+limits: { scoreThreshold: 0.75 }
+
+// Very strict (may miss relevant content)
+limits: { scoreThreshold: 0.9 }
+```
+
+**When to use**:
+- **0**: General knowledge bases, comprehensive coverage
+- **0.6-0.7**: Most applications, balanced approach
+- **0.75-0.85**: Legal, medical, compliance - high accuracy required
+- **0.9+**: Only when extreme precision is critical
+
+### Context Size
+
+Balance between context and cost:
+
+```typescript
+// Minimal context (faster, cheaper)
+limits: { maxContextChars: 5000 }
+
+// Balanced (default)
+limits: { maxContextChars: 8000 }
+
+// Rich context (slower, more expensive)
+limits: { maxContextChars: 12000 }
+```
+
+**Impact**:
+- More context = better answers but higher costs
+- Less context = faster responses but may miss information
+
+## Model Selection
+
+### Choose the Right Model
+
+<CardGroup cols={2}>
+  <Card title="gpt-4o-mini" icon="bolt">
+    **Best for**:
+    - High-volume applications
+    - Simple Q&A
+    - Cost-sensitive projects
+    - Fast responses needed
+
+    **Cost**: ~$0.15/1M input tokens
+
+    ```typescript
+    ai: {
+      provider: "openai",
+      model: "gpt-4o-mini"
+    }
+    ```
+  </Card>
+
+  <Card title="gpt-4o" icon="sparkles">
+    **Best for**:
+    - Complex reasoning
+    - Legal/medical applications
+    - High-accuracy requirements
+    - Nuanced questions
+
+    **Cost**: ~$5.00/1M input tokens
+
+    ```typescript
+    ai: {
+      provider: "openai",
+      model: "gpt-4o"
+    }
+    ```
+  </Card>
+</CardGroup>
+
+### Cost vs. Quality Trade-offs
+
+```typescript
+// Cost-optimized configuration
+const budget = await createContextWindow({
+  indexName: "budget-docs",
+  data: ["./docs"],
+  chunk: { size: 2000, overlap: 100 },     // Fewer chunks
+  limits: {
+    topK: 5,                                 // Fewer retrievals
+    maxContextChars: 5000,                   // Less context
+    scoreThreshold: 0.6                      // Filter low matches
+  },
+  ai: { provider: "openai", model: "gpt-4o-mini" }
+});
+
+// Quality-optimized configuration
+const premium = await createContextWindow({
+  indexName: "premium-docs",
+  data: ["./docs"],
+  chunk: { size: 1500, overlap: 250 },     // Balanced chunks
+  limits: {
+    topK: 12,                                // More retrievals
+    maxContextChars: 12000,                  // Rich context
+    scoreThreshold: 0                        // No filtering
+  },
+  ai: { provider: "openai", model: "gpt-4o" }
+});
+```
+
+## Performance Optimization
+
+### Initialize Early
+
+Create context windows during application startup, not on-demand:
+
+```typescript
+// Good: Initialize once at startup
+async function startup() {
+  await createCtxWindow({
+    indexName: "docs",
+    data: ["./documentation"],
+    ai: { provider: "openai" },
+    vectorStore: { provider: "pinecone" }
+  });
+
+  await startServer();
+}
+
+// Bad: Creating on every request
+app.get("/ask", async (req, res) => {
+  // This re-ingests documents every time!
+  const cw = await createContextWindow({ /* ... */ });
+  // ...
+});
+```
+
+### Use Registry Pattern
+
+For applications with multiple context windows:
+
+```typescript
+// Good: Create once, use many times
+await createCtxWindow({
+  indexName: "user-docs",
+  data: ["./docs/users"],
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Use anywhere
+function handleUserQuestion(q: string) {
+  const cw = getCtxWindow("user-docs");
+  return cw.ask(q);
+}
+
+// Bad: Passing instances around
+const cw = await createContextWindow({ /* ... */ });
+handleQuestion(cw, q);  // Coupling, harder to maintain
+```
+
+### Implement Caching
+
+Cache frequently asked questions:
+
+```typescript
+const cache = new Map<string, AskResult>();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
+async function cachedAsk(cw: ContextWindow, question: string) {
+  const cached = cache.get(question);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.result;
+  }
+
+  const result = await cw.ask(question);
+  cache.set(question, { result, timestamp: Date.now() });
+
+  return result;
+}
+```
+
+### Batch Similar Operations
+
+Process multiple questions in parallel:
+
+```typescript
+// Good: Parallel processing
+const results = await Promise.all([
+  cw.ask("Question 1"),
+  cw.ask("Question 2"),
+  cw.ask("Question 3")
+]);
+
+// Bad: Sequential processing
+const result1 = await cw.ask("Question 1");
+const result2 = await cw.ask("Question 2");
+const result3 = await cw.ask("Question 3");
+```
+
+## Error Handling
+
+### Validate Input
+
+```typescript
+function validateQuestion(question: string) {
+  if (!question || question.trim().length === 0) {
+    throw new Error("Question cannot be empty");
+  }
+
+  if (question.length > 500) {
+    throw new Error("Question too long (max 500 characters)");
+  }
+
+  return question.trim();
+}
+
+async function safeAsk(cw: ContextWindow, question: string) {
+  try {
+    const validated = validateQuestion(question);
+    return await cw.ask(validated);
+  } catch (error) {
+    console.error("Validation error:", error);
+    throw error;
+  }
+}
+```
+
+### Handle API Failures
+
+```typescript
+async function resilientAsk(
+  cw: ContextWindow,
+  question: string,
+  maxRetries = 3
+) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await cw.ask(question);
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error;
+
+      const delay = Math.pow(2, attempt) * 1000;
+      console.log(`Retry ${attempt + 1} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+```
+
+### Provide Fallbacks
+
+```typescript
+async function askWithFallback(cw: ContextWindow, question: string) {
+  try {
+    const result = await cw.ask(question);
+
+    if (result.text.includes("I don't know")) {
+      return {
+        ...result,
+        text: "I couldn't find an answer in the documentation. Would you like to contact support?"
+      };
+    }
+
+    return result;
+  } catch (error) {
+    return {
+      text: "I'm experiencing technical difficulties. Please try again later.",
+      sources: []
+    };
+  }
+}
+```
+
+## Security Best Practices
+
+### Protect API Keys
+
+```typescript
+// Good: Environment variables
+const apiKey = process.env.OPENAI_API_KEY;
+
+// Bad: Hardcoded
+const apiKey = "sk-...";  // Never do this!
+
+// Good: Validation
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY not set");
+}
+```
+
+### Input Sanitization
+
+```typescript
+function sanitizeQuestion(question: string): string {
+  // Remove potential injection attempts
+  return question
+    .replace(/<script>/gi, "")
+    .replace(/javascript:/gi, "")
+    .trim()
+    .slice(0, 500); // Max length
+}
+```
+
+### Rate Limiting
+
+```typescript
+import rateLimit from "express-rate-limit";
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+
+app.use("/api/ask", limiter);
+```
+
+## Monitoring & Logging
+
+### Track Performance
+
+```typescript
+async function monitoredAsk(cw: ContextWindow, question: string) {
+  const startTime = Date.now();
+
+  try {
+    const result = await cw.ask(question);
+    const duration = Date.now() - startTime;
+
+    console.log({
+      type: "success",
+      question,
+      duration,
+      sourceCount: result.sources.length
+    });
+
+    return result;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+
+    console.error({
+      type: "error",
+      question,
+      duration,
+      error: error instanceof Error ? error.message : "Unknown"
+    });
+
+    throw error;
+  }
+}
+```
+
+### Log Important Events
+
+```typescript
+// Initialization
+console.log("Creating context window:", indexName);
+await createCtxWindow({ /* ... */ });
+console.log("Context window ready:", indexName);
+
+// Queries
+console.log("Question received:", question);
+const result = await cw.ask(question);
+console.log("Answer generated:", {
+  sourceCount: result.sources.length,
+  hasAnswer: !result.text.includes("I don't know")
+});
+
+// Errors
+console.error("Failed to answer question:", {
+  question,
+  error: error.message,
+  stack: error.stack
+});
+```
+
+## Testing Strategies
+
+### Unit Tests
+
+```typescript
+describe("Context Window", () => {
+  let cw: ContextWindow;
+
+  beforeAll(async () => {
+    cw = await createContextWindow({
+      indexName: "test",
+      data: ["./test-fixtures"],
+      ai: { provider: "openai" },
+      vectorStore: { provider: "pinecone" }
+    });
+  });
+
+  it("should answer known questions", async () => {
+    const result = await cw.ask("What is the test topic?");
+    expect(result.text).not.toContain("I don't know");
+    expect(result.sources.length).toBeGreaterThan(0);
+  });
+
+  it("should handle unknown questions", async () => {
+    const result = await cw.ask("Completely unrelated question");
+    expect(result.text).toContain("I don't know");
+  });
+});
+```
+
+### Integration Tests
+
+```typescript
+describe("API Integration", () => {
+  it("should process questions end-to-end", async () => {
+    const response = await request(app)
+      .post("/api/ask")
+      .send({ question: "How do I get started?" })
+      .expect(200);
+
+    expect(response.body).toHaveProperty("answer");
+    expect(response.body).toHaveProperty("sources");
+  });
+});
+```
+
+## Production Checklist
+
+Before deploying to production:
+
+- [ ] API keys stored securely (environment variables, secrets manager)
+- [ ] Error handling implemented for all failure modes
+- [ ] Rate limiting configured
+- [ ] Input validation in place
+- [ ] Logging and monitoring set up
+- [ ] Tested with realistic data volumes
+- [ ] Costs estimated and budgeted
+- [ ] Backup and recovery plan
+- [ ] Documentation for maintenance
+- [ ] Health check endpoint implemented
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="sliders" href="/api-reference/configuration">
+    Detailed configuration options
+  </Card>
+  <Card title="Examples" icon="code" href="/examples">
+    Complete code examples
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting">
+    Solve common issues
+  </Card>
+  <Card title="Use Cases" icon="lightbulb" href="/use-cases">
+    Real-world applications
+  </Card>
+</CardGroup>
+
