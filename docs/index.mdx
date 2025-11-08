@@ -1,20 +1,11 @@
 ---
-title: "Introduction"
+title: "context-window"
 description: "A production-grade RAG library for building AI applications that answer questions from your documents"
 ---
 
 ## Welcome to context-window
 
 Building AI applications that answer questions from your documents shouldn't be complicated. **context-window** provides a simple, elegant API that handles the entire RAG (Retrieval-Augmented Generation) pipeline.
-
-<Card
-  title="Quick Start"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Get started in minutes with our step-by-step guide
-</Card>
 
 ## Why context-window?
 
@@ -55,12 +46,190 @@ Re-running ingestion with the same files won't create duplicates. Chunk IDs are 
 
 Every answer includes references to the source documents used, making it easy to verify information and maintain trust.
 
-## Get Started
+## Installation
+
+<Steps>
+  <Step title="Install the package">
+    Install context-window using npm or your preferred package manager:
+
+    ```bash
+    npm install context-window
+    ```
+  </Step>
+
+  <Step title="Create a Pinecone Index">
+    First-time setup requires creating a Pinecone index:
+
+    1. Go to [Pinecone Console](https://app.pinecone.io/)
+    2. Click **Create Index**
+    3. Configure your index:
+       - **Name**: `context-window` (or any name you prefer)
+       - **Dimensions**: `1536` (required for OpenAI embeddings)
+       - **Metric**: `cosine` (recommended)
+       - **Cloud**: AWS or GCP (AWS us-east-1 for free tier)
+    4. Click **Create Index**
+
+    <Note>
+      The free tier includes 1 serverless index with 100K vectors, perfect for testing and small projects.
+    </Note>
+  </Step>
+
+  <Step title="Get your API keys">
+    You'll need API keys from both OpenAI and Pinecone:
+
+    <Accordion title="OpenAI API Key">
+      1. Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
+      2. Click **Create new secret key**
+      3. Copy the key (starts with `sk-...`)
+      4. Store it securely - you won't be able to see it again
+    </Accordion>
+
+    <Accordion title="Pinecone API Key">
+      1. Visit [Pinecone Console](https://app.pinecone.io/)
+      2. Go to **API Keys** in the left sidebar
+      3. Copy your API key
+      4. Note your environment/region (e.g., `us-east-1`)
+    </Accordion>
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env` file in your project root:
+
+    ```bash
+    # OpenAI Configuration
+    OPENAI_API_KEY=sk-...
+
+    # Pinecone Configuration
+    PINECONE_API_KEY=...
+    PINECONE_INDEX=context-window
+    PINECONE_ENVIRONMENT=us-east-1
+    ```
+
+    <Warning>
+      Never commit your `.env` file to version control. Add it to `.gitignore`.
+    </Warning>
+  </Step>
+</Steps>
+
+## Quick Start
+
+Create your first RAG application in minutes:
+
+```typescript
+import { createContextWindow } from "context-window";
+
+// Create a context window with your documents
+const cw = await createContextWindow({
+  indexName: "my-docs",
+  data: ["./documents"],
+  ai: { provider: "openai", model: "gpt-4o-mini" },
+  vectorStore: { provider: "pinecone" }
+});
+
+// Ask a question
+const { text, sources } = await cw.ask("What is the main topic?");
+console.log(text);     // AI-generated answer
+console.log(sources);  // ["document1.pdf", "notes.md"]
+```
+
+<Tip>
+  You can pass a single file, multiple files, or entire directories to the `data` parameter. Supported formats: `.txt`, `.md`, `.pdf`
+</Tip>
+
+## What Happens Behind the Scenes
+
+When you create a context window, here's what happens:
+
+1. **Ingests** your documents by reading all `.txt`, `.md`, and `.pdf` files
+2. **Chunks** the text into overlapping segments (default: 1000 chars)
+3. **Embeds** each chunk using OpenAI's text-embedding-3-small
+4. **Stores** vectors in your Pinecone index
+5. **Retrieves** relevant chunks when you ask a question
+6. **Generates** an answer using GPT-4o-mini with strict RAG instructions
+
+## Common Customizations
+
+### Using Different Models
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "my-docs",
+  data: ["./docs"],
+  ai: {
+    provider: "openai",
+    model: "gpt-4o"  // Use GPT-4 for better accuracy
+  },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Adjusting Chunk Size
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "my-docs",
+  data: ["./docs"],
+  chunk: {
+    size: 1500,    // Larger chunks for more context
+    overlap: 200   // More overlap to preserve continuity
+  },
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+### Fine-tuning Retrieval
+
+```typescript
+const cw = await createContextWindow({
+  indexName: "my-docs",
+  data: ["./docs"],
+  limits: {
+    topK: 5,               // Retrieve top 5 most relevant chunks
+    scoreThreshold: 0.7,   // Only use high-confidence matches
+    maxContextChars: 6000  // Limit context size
+  },
+  ai: { provider: "openai" },
+  vectorStore: { provider: "pinecone" }
+});
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Pinecone index not found">
+    Make sure:
+    - Your Pinecone index exists in the console
+    - `PINECONE_INDEX` in `.env` matches your index name
+    - You're using the correct environment/region
+  </Accordion>
+
+  <Accordion title="Error: Incorrect dimensions">
+    Your Pinecone index must have **1536 dimensions**. If you created it with wrong dimensions:
+    1. Delete the old index in Pinecone Console
+    2. Create a new one with 1536 dimensions
+    3. Re-run your ingestion
+  </Accordion>
+
+  <Accordion title="Error: Invalid API key">
+    Verify your API keys:
+    - OpenAI key starts with `sk-`
+    - Keys are correctly set in `.env`
+    - No extra spaces or quotes around the keys
+  </Accordion>
+
+  <Accordion title='Always returns "I don\'t know"'>
+    Try:
+    - Lowering `scoreThreshold` or removing it entirely
+    - Increasing `topK` to retrieve more chunks
+    - Rephrasing your question to match document content
+    - Verifying documents were ingested successfully
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Quick Start" icon="play" href="/quickstart">
-    Set up your first context window in under 5 minutes
-  </Card>
   <Card title="Use Cases" icon="lightbulb" href="/use-cases">
     Explore real-world applications and examples
   </Card>
@@ -70,39 +239,11 @@ Every answer includes references to the source documents used, making it easy to
   <Card title="Best Practices" icon="star" href="/best-practices">
     Tips for optimizing performance and accuracy
   </Card>
-</CardGroup>
-
-## Quick Example
-
-```typescript
-import { createContextWindow } from "context-window";
-
-const cw = await createContextWindow({
-  indexName: "my-docs",
-  data: ["./documents"],
-  ai: { provider: "openai", model: "gpt-4o-mini" },
-  vectorStore: { provider: "pinecone" }
-});
-
-const { text, sources } = await cw.ask("What is the main topic?");
-console.log(text);     // AI-generated answer
-console.log(sources);  // ["document1.pdf", "notes.md"]
-```
-
-## What You'll Need
-
-<CardGroup cols={3}>
-  <Card title="Node.js 18+" icon="node-js">
-    Modern JavaScript runtime
-  </Card>
-  <Card title="OpenAI API" icon="key">
-    For embeddings and completions
-  </Card>
-  <Card title="Pinecone Account" icon="database">
-    Free tier includes 100K vectors
+  <Card title="Examples" icon="book" href="/examples">
+    Browse complete code examples for common scenarios
   </Card>
 </CardGroup>
 
 <Note>
-  Ready to build? Head over to the [Quick Start guide](/quickstart) to set up your first context window.
+  Need more help? Check out the [Troubleshooting guide](/troubleshooting) or open an issue on [GitHub](https://github.com/hamittokay/context-window/issues).
 </Note>

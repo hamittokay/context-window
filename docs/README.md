@@ -4,14 +4,12 @@ This directory contains the documentation for **context-window**, a production-g
 
 ## Documentation Structure
 
-- **[index.mdx](index.mdx)** - Introduction and overview
-- **[quickstart.mdx](quickstart.mdx)** - Getting started guide
+- **[index.mdx](index.mdx)** - Introduction, installation, and quick start guide
 - **[use-cases.mdx](use-cases.mdx)** - Real-world applications and examples
 - **[best-practices.mdx](best-practices.mdx)** - Optimization tips and recommendations
 - **[examples.mdx](examples.mdx)** - Code examples and patterns
 - **[troubleshooting.mdx](troubleshooting.mdx)** - Common issues and solutions
 - **[faq.mdx](faq.mdx)** - Frequently asked questions
-- **[development.mdx](development.mdx)** - Contributing and development guide
 - **api-reference/** - Complete API documentation
   - [introduction.mdx](api-reference/introduction.mdx)
   - [create-context-window.mdx](api-reference/create-context-window.mdx)
