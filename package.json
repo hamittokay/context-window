@@ -1,0 +1,57 @@
+{
+  "name": "context-window",
+  "version": "1.0.0",
+  "description": "A production-grade RAG library with OpenAI embeddings and Pinecone vector storage",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest run",
+    "check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "rag",
+    "retrieval-augmented-generation",
+    "openai",
+    "pinecone",
+    "embeddings",
+    "vector-search",
+    "context-window"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@pinecone-database/pinecone": "^3.0.3",
+    "openai": "^4.77.0",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.9",
+    "@types/pdf-parse": "^1.1.4",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.1",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
