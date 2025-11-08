@@ -1,6 +1,6 @@
 {
   "name": "context-window",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A production-grade RAG library with OpenAI embeddings and Pinecone vector storage",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -77,4 +77,3 @@
     "node": ">=18.0.0"
   }
 }
-
