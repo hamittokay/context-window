@@ -14,13 +14,13 @@ description: 'Retrieve a registered context window from the global registry'
 ## Signature
 
 ```typescript
-function getCtxWindow(indexName: string): ContextWindow
+function getCtxWindow(namespace: string): ContextWindow
 ```
 
 ## Parameters
 
-<ParamField path="indexName" type="string" required>
-  The unique identifier of the context window to retrieve. Must match the `indexName` used when creating the context window with `createCtxWindow()`.
+<ParamField path="namespace" type="string" required>
+  The unique identifier of the context window to retrieve. Must match the `namespace` used when creating the context window with `createCtxWindow()`.
 </ParamField>
 
 ## Return Value
@@ -44,7 +44,7 @@ function getCtxWindow(indexName: string): ContextWindow
 ## Errors
 
 <Warning>
-  Throws an error if no context window with the specified `indexName` exists in the registry.
+  Throws an error if no context window with the specified `namespace` exists in the registry.
 </Warning>
 
 ```typescript
@@ -61,7 +61,7 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 
 // First, create and register
 await createCtxWindow({
-  indexName: "documentation",
+  namespace: "documentation",
   data: ["./docs"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -83,7 +83,7 @@ import { createCtxWindow } from "context-window";
 
 export async function initializeApp() {
   await createCtxWindow({
-    indexName: "product-catalog",
+    namespace: "product-catalog",
     data: ["./products"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -118,11 +118,11 @@ app.get("/api/products/search", async (req, res) => {
 ```typescript
 import { getCtxWindow, hasCtxWindow } from "context-window";
 
-function safeGetCtxWindow(indexName: string) {
-  if (!hasCtxWindow(indexName)) {
-    throw new Error(`Context window '${indexName}' has not been initialized`);
+function safeGetCtxWindow(namespace: string) {
+  if (!hasCtxWindow(namespace)) {
+    throw new Error(`Context window '${namespace}' has not been initialized`);
   }
-  return getCtxWindow(indexName);
+  return getCtxWindow(namespace);
 }
 
 // Usage
@@ -140,24 +140,24 @@ try {
 import { getCtxWindow } from "context-window";
 
 async function answerUserQuestion(question: string, department: string) {
-  let indexName: string;
+  let namespace: string;
 
   // Route to appropriate context window based on department
   switch (department) {
     case "sales":
-      indexName = "sales-docs";
+      namespace = "sales-docs";
       break;
     case "support":
-      indexName = "support-docs";
+      namespace = "support-docs";
       break;
     case "engineering":
-      indexName = "engineering-docs";
+      namespace = "engineering-docs";
       break;
     default:
       throw new Error("Unknown department");
   }
 
-  const cw = getCtxWindow(indexName);
+  const cw = getCtxWindow(namespace);
   return await cw.ask(question);
 }
 
@@ -216,17 +216,17 @@ declare global {
 import { getCtxWindow, hasCtxWindow, createCtxWindow } from "context-window";
 
 // Create a lazy-loading wrapper
-async function getOrCreateContextWindow(indexName: string, dataPath: string) {
-  if (!hasCtxWindow(indexName)) {
-    console.log(`Initializing ${indexName}...`);
+async function getOrCreateContextWindow(namespace: string, dataPath: string) {
+  if (!hasCtxWindow(namespace)) {
+    console.log(`Initializing ${namespace}...`);
     await createCtxWindow({
-      indexName,
+      namespace,
       data: [dataPath],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }
     });
   }
-  return getCtxWindow(indexName);
+  return getCtxWindow(namespace);
 }
 
 // Usage - creates on first access
@@ -389,10 +389,10 @@ if (allWindows.includes("my-docs")) {
 ```typescript
 import { getCtxWindow } from "context-window";
 
-function debugGetCtxWindow(indexName: string) {
-  console.log(`Retrieving context window: ${indexName}`);
-  const cw = getCtxWindow(indexName);
-  console.log(`Successfully retrieved: ${indexName}`);
+function debugGetCtxWindow(namespace: string) {
+  console.log(`Retrieving context window: ${namespace}`);
+  const cw = getCtxWindow(namespace);
+  console.log(`Successfully retrieved: ${namespace}`);
   return cw;
 }
 ```

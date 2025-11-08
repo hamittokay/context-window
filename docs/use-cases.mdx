@@ -17,7 +17,7 @@ Build chatbots and assistants that answer questions from your documentation.
 import { createCtxWindow, getCtxWindow } from "context-window";
 
 const kb = await createCtxWindow({
-  indexName: "knowledge-base",
+  namespace: "knowledge-base",
   data: ["./docs/kb"],
   ai: { provider: "openai", model: "gpt-4o-mini" },
   vectorStore: { provider: "pinecone" }
@@ -40,7 +40,7 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 
 // Initialize documentation
 await createCtxWindow({
-  indexName: "product-docs",
+  namespace: "product-docs",
   data: [
     "./docs/installation",
     "./docs/configuration",
@@ -75,7 +75,7 @@ Query across multiple research papers, articles, or books.
 
 ```typescript
 const research = await createCtxWindow({
-  indexName: "research-papers",
+  namespace: "research-papers",
   data: [
     "./papers/machine-learning",
     "./papers/nlp",
@@ -111,7 +111,7 @@ const result2 = await research.ask(
 
 ```typescript
 const market = await createCtxWindow({
-  indexName: "market-research",
+  namespace: "market-research",
   data: [
     "./reports/2023",
     "./reports/2024",
@@ -149,14 +149,14 @@ app.use(express.json());
 
 // Initialize business intelligence sources
 await createCtxWindow({
-  indexName: "quarterly-reports",
+  namespace: "quarterly-reports",
   data: ["./reports/quarterly"],
   ai: { provider: "openai", model: "gpt-4o" },
   vectorStore: { provider: "pinecone" }
 });
 
 await createCtxWindow({
-  indexName: "sales-data",
+  namespace: "sales-data",
   data: ["./reports/sales"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -196,7 +196,7 @@ Create AI tutors that answer questions from textbooks and lecture notes.
 
 ```typescript
 const studyAssistant = await createCtxWindow({
-  indexName: "biology-101",
+  namespace: "biology-101",
   data: [
     "./textbooks/biology",
     "./lecture-notes",
@@ -229,7 +229,7 @@ class CourseAssistant {
 
   async createCourse(courseId: string, materials: string[]) {
     await createCtxWindow({
-      indexName: `course-${courseId}`,
+      namespace: `course-${courseId}`,
       data: materials,
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }
@@ -238,12 +238,12 @@ class CourseAssistant {
   }
 
   async askQuestion(courseId: string, question: string) {
-    const indexName = this.courses.get(courseId);
-    if (!indexName) {
+    const namespace = this.courses.get(courseId);
+    if (!namespace) {
       throw new Error("Course not found");
     }
 
-    const cw = getCtxWindow(indexName);
+    const cw = getCtxWindow(namespace);
     return await cw.ask(question);
   }
 
@@ -274,7 +274,7 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 
 // Initialize support knowledge base
 await createCtxWindow({
-  indexName: "support-kb",
+  namespace: "support-kb",
   data: [
     "./support/faq",
     "./support/troubleshooting",
@@ -317,7 +317,7 @@ class SupportBot {
 
   async initialize() {
     await createCtxWindow({
-      indexName: "support",
+      namespace: "support",
       data: ["./support-docs"],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }
@@ -377,7 +377,7 @@ Search and query through contracts, policies, and legal documents.
 
 ```typescript
 const legal = await createCtxWindow({
-  indexName: "contracts",
+  namespace: "contracts",
   data: ["./contracts", "./agreements"],
   chunk: {
     size: 1500,    // Large chunks for legal context
@@ -410,7 +410,7 @@ const pricing = await legal.ask(
 
 ```typescript
 const policies = await createCtxWindow({
-  indexName: "company-policies",
+  namespace: "company-policies",
   data: [
     "./policies/hr",
     "./policies/security",
@@ -447,7 +447,7 @@ Find relevant information across large document collections.
 
 ```typescript
 const archive = await createCtxWindow({
-  indexName: "company-archive",
+  namespace: "company-archive",
   data: [
     "./archive/2020",
     "./archive/2021",
@@ -481,7 +481,7 @@ class WikiSearch {
 
   async initialize() {
     await createCtxWindow({
-      indexName: "company-wiki",
+      namespace: "company-wiki",
       data: ["./wiki"],
       chunk: { size: 1200, overlap: 180 },
       ai: { provider: "openai" },
@@ -517,7 +517,7 @@ class WikiSearch {
 
 ```typescript
 const medical = await createCtxWindow({
-  indexName: "medical-literature",
+  namespace: "medical-literature",
   data: ["./medical-papers", "./clinical-guidelines"],
   chunk: { size: 1500, overlap: 250 },
   limits: {
@@ -542,7 +542,7 @@ const treatment = await medical.ask(
 
 ```typescript
 const properties = await createCtxWindow({
-  indexName: "property-listings",
+  namespace: "property-listings",
   data: ["./listings", "./property-details"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -562,7 +562,7 @@ const investment = await properties.ask(
 
 ```typescript
 const recipes = await createCtxWindow({
-  indexName: "recipe-collection",
+  namespace: "recipe-collection",
   data: ["./recipes", "./cookbooks"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }

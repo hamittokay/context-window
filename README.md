@@ -11,8 +11,7 @@ npm install context-window
 ## Setup
 
 1. Get API keys from [OpenAI](https://platform.openai.com/api-keys) and [Pinecone](https://app.pinecone.io/)
-2. Create a Pinecone index with **1536 dimensions** (required for OpenAI embeddings)
-3. Set environment variables:
+2. Set environment variables:
 
 ```bash
 OPENAI_API_KEY=sk-...
@@ -28,7 +27,7 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 
 // Ingest documents
 await createCtxWindow({
-  indexName: "my-docs",
+  namespace: "my-docs",
   data: ["./my-book.pdf"],  // .txt, .md, .pdf supported
   ai: { provider: "openai", model: "gpt-4o-mini" },
   vectorStore: { provider: "pinecone" }
@@ -47,21 +46,21 @@ console.log(sources);
 ### Main Functions
 
 **`createCtxWindow(options)`** - Ingest documents and create a context window
-- `indexName`: Unique identifier
+- `namespace`: Unique identifier
 - `data`: File paths or directories (`.txt`, `.md`, `.pdf`)
 - `ai`: `{ provider: "openai", model?: "gpt-4o-mini" }`
 - `vectorStore`: `{ provider: "pinecone" }`
 - `chunk`: `{ size?: 1000, overlap?: 150 }`
 - `limits`: `{ topK?: 8, maxContextChars?: 8000, scoreThreshold?: 0 }`
 
-**`getCtxWindow(indexName)`** - Retrieve a context window
+**`getCtxWindow(namespace)`** - Retrieve a context window
 
 **`cw.ask(question)`** - Returns `{ text: string, sources: string[] }`
 
 ### Utilities
 
-- `hasCtxWindow(indexName)` - Check if exists
-- `deleteCtxWindow(indexName)` - Remove from registry
+- `hasCtxWindow(namespace)` - Check if exists
+- `deleteCtxWindow(namespace)` - Remove from registry
 - `clearCtxWindows()` - Clear all
 - `listCtxWindows()` - List all
 

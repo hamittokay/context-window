@@ -11,7 +11,7 @@ context-window provides extensive configuration options to customize AI models, 
 
 ```typescript
 interface CreateContextWindowOptions {
-  indexName: string;
+  namespace: string;
   data: string | string[];
   ai?: AIConfig;
   vectorStore?: VectorStoreConfig;
@@ -22,9 +22,9 @@ interface CreateContextWindowOptions {
 
 ## Required Options
 
-### indexName
+### namespace
 
-<ParamField path="indexName" type="string" required>
+<ParamField path="namespace" type="string" required>
   Unique identifier for the context window. Also used as the Pinecone namespace.
 
   **Rules**:
@@ -33,7 +33,7 @@ interface CreateContextWindowOptions {
   - Alphanumeric characters, hyphens, and underscores only
 
   ```typescript
-  indexName: "product-catalog"
+  namespace: "product-catalog"
   ```
 </ParamField>
 
@@ -136,7 +136,7 @@ ai: {
   ```typescript
   {
     provider: "pinecone",
-    namespace: indexName  // Uses indexName by default
+    namespace: namespace  // Uses namespace by default
   }
   ```
 
@@ -150,7 +150,7 @@ ai: {
     </ParamField>
 
     <ParamField path="namespace" type="string">
-      Pinecone namespace for data isolation. Defaults to `indexName`.
+      Pinecone namespace for data isolation. Defaults to `namespace`.
 
       Use custom namespaces to:
       - Separate different datasets in the same index
@@ -167,7 +167,7 @@ ai: {
 **Examples**:
 
 ```typescript
-// Use default namespace (same as indexName)
+// Use default namespace (same as namespace)
 vectorStore: { provider: "pinecone" }
 
 // Custom namespace
@@ -444,7 +444,7 @@ limits: {
 
 ```typescript
 await createCtxWindow({
-  indexName: "general-docs",
+  namespace: "general-docs",
   data: ["./documentation"],
   ai: {
     provider: "openai",
@@ -469,7 +469,7 @@ await createCtxWindow({
 
 ```typescript
 await createCtxWindow({
-  indexName: "research-papers",
+  namespace: "research-papers",
   data: ["./papers"],
   ai: {
     provider: "openai",
@@ -492,7 +492,7 @@ await createCtxWindow({
 
 ```typescript
 await createCtxWindow({
-  indexName: "faq",
+  namespace: "faq",
   data: ["./faq.md"],
   ai: {
     provider: "openai",
@@ -515,7 +515,7 @@ await createCtxWindow({
 
 ```typescript
 await createCtxWindow({
-  indexName: "legal-docs",
+  namespace: "legal-docs",
   data: ["./contracts", "./policies"],
   ai: {
     provider: "openai",
@@ -554,7 +554,7 @@ Full TypeScript types for reference:
 
 ```typescript
 interface CreateContextWindowOptions {
-  indexName: string;
+  namespace: string;
   data: string | string[];
   ai?: AIConfig;
   vectorStore?: VectorStoreConfig;

@@ -54,7 +54,7 @@ describe("Registry Functions", () => {
   describe("createCtxWindow", () => {
     it("should create and register a context window", async () => {
       const cw = await createCtxWindow({
-        indexName: "test-index",
+        namespace: "test-index",
         data: ["./test.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
@@ -67,14 +67,14 @@ describe("Registry Functions", () => {
 
     it("should allow creating multiple context windows with different names", async () => {
       await createCtxWindow({
-        indexName: "index-1",
+        namespace: "index-1",
         data: ["./test1.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
       });
 
       await createCtxWindow({
-        indexName: "index-2",
+        namespace: "index-2",
         data: ["./test2.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
@@ -89,7 +89,7 @@ describe("Registry Functions", () => {
   describe("getCtxWindow", () => {
     it("should retrieve a registered context window", async () => {
       await createCtxWindow({
-        indexName: "my-index",
+        namespace: "my-index",
         data: ["./test.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
@@ -121,7 +121,7 @@ describe("Registry Functions", () => {
   describe("hasCtxWindow", () => {
     it("should return true for existing context windows", async () => {
       await createCtxWindow({
-        indexName: "exists",
+        namespace: "exists",
         data: ["./test.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
@@ -138,7 +138,7 @@ describe("Registry Functions", () => {
   describe("deleteCtxWindow", () => {
     it("should delete a context window from the registry", async () => {
       await createCtxWindow({
-        indexName: "to-delete",
+        namespace: "to-delete",
         data: ["./test.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
@@ -159,14 +159,14 @@ describe("Registry Functions", () => {
   describe("clearCtxWindows", () => {
     it("should clear all context windows from the registry", async () => {
       await createCtxWindow({
-        indexName: "index-1",
+        namespace: "index-1",
         data: ["./test1.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
       });
 
       await createCtxWindow({
-        indexName: "index-2",
+        namespace: "index-2",
         data: ["./test2.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
@@ -185,14 +185,14 @@ describe("Registry Functions", () => {
 
     it("should return all registered context window names", async () => {
       await createCtxWindow({
-        indexName: "alpha",
+        namespace: "alpha",
         data: ["./test1.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
       });
 
       await createCtxWindow({
-        indexName: "beta",
+        namespace: "beta",
         data: ["./test2.txt"],
         ai: { provider: "openai" },
         vectorStore: { provider: "pinecone" },
@@ -208,7 +208,7 @@ describe("Registry Functions", () => {
   describe("Integration: createCtxWindow + getCtxWindow", () => {
     it("should allow creating and later retrieving a context window", async () => {
       await createCtxWindow({
-        indexName: "american-history",
+        namespace: "american-history",
         data: ["./history.txt"],
         ai: { provider: "openai", model: "gpt-4o-mini" },
         vectorStore: { provider: "pinecone" },

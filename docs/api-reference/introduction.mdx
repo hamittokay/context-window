@@ -37,7 +37,7 @@ The simplest way to use context-window:
 import { createCtxWindow } from "context-window";
 
 const cw = await createCtxWindow({
-  indexName: "my-docs",
+  namespace: "my-docs",
   data: ["./documents"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -70,7 +70,7 @@ Create, register, and retrieve context windows by name:
 
 ```typescript
 // Create and register
-await createCtxWindow({ indexName: "docs", /* ... */ });
+await createCtxWindow({ namespace: "docs", /* ... */ });
 
 // Retrieve later (same process or different module)
 const cw = getCtxWindow("docs");
@@ -128,7 +128,7 @@ context-window is written in TypeScript with full type definitions:
 
 ```typescript
 interface CreateContextWindowOptions {
-  indexName: string;
+  namespace: string;
   data: string | string[];
   ai?: AIConfig;
   vectorStore?: VectorStoreConfig;
@@ -162,7 +162,7 @@ All functions use standard error handling patterns:
 ```typescript
 try {
   const cw = await createCtxWindow({
-    indexName: "my-docs",
+    namespace: "my-docs",
     data: ["./documents"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }

@@ -11,7 +11,7 @@ description: 'Complete code examples for common scenarios'
 import { createCtxWindow, getCtxWindow } from "context-window";
 
 const cw = await createCtxWindow({
-  indexName: "single-file",
+  namespace: "single-file",
   data: ["./document.pdf"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -27,7 +27,7 @@ console.log(result.text);
 
 ```typescript
 const cw = await createCtxWindow({
-  indexName: "multiple-files",
+  namespace: "multiple-files",
   data: [
     "./intro.md",
     "./chapter1.pdf",
@@ -56,7 +56,7 @@ for (const question of questions) {
 ```typescript
 // Process all supported files in a directory recursively
 const cw = await createCtxWindow({
-  indexName: "documentation",
+  namespace: "documentation",
   data: ["./docs"],  // Will find all .txt, .md, .pdf files
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -74,7 +74,7 @@ console.log(`Sources: ${result.sources.join(", ")}`);
 ```typescript
 // Larger chunks for comprehensive answers
 const largeCw = await createCtxWindow({
-  indexName: "legal-docs",
+  namespace: "legal-docs",
   data: ["./contracts"],
   chunk: {
     size: 2000,    // 2000 characters per chunk
@@ -86,7 +86,7 @@ const largeCw = await createCtxWindow({
 
 // Smaller chunks for precise answers
 const smallCw = await createCtxWindow({
-  indexName: "faq",
+  namespace: "faq",
   data: ["./faq.md"],
   chunk: {
     size: 500,     // 500 characters per chunk
@@ -101,7 +101,7 @@ const smallCw = await createCtxWindow({
 
 ```typescript
 const cw = await createCtxWindow({
-  indexName: "technical-docs",
+  namespace: "technical-docs",
   data: ["./technical"],
   limits: {
     topK: 10,                // Retrieve top 10 chunks
@@ -124,13 +124,13 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 // Initialize multiple context windows
 await Promise.all([
   createCtxWindow({
-    indexName: "user-docs",
+    namespace: "user-docs",
     data: ["./docs/users"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
   }),
   createCtxWindow({
-    indexName: "api-docs",
+    namespace: "api-docs",
     data: ["./docs/api"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -167,7 +167,7 @@ app.use(express.json());
 // Initialize on startup
 async function initialize() {
   await createCtxWindow({
-    indexName: "docs",
+    namespace: "docs",
     data: ["./documentation"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -359,7 +359,7 @@ program
     console.log("Loading documents...");
 
     const cw = await createCtxWindow({
-      indexName: "cli-docs",
+      namespace: "cli-docs",
       data: [directory],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }
@@ -414,7 +414,7 @@ const client = new Client({
 
 // Initialize context window
 await createCtxWindow({
-  indexName: "server-docs",
+  namespace: "server-docs",
   data: ["./server-documentation"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -461,7 +461,7 @@ describe("Context Window", () => {
 
   beforeAll(async () => {
     cw = await createCtxWindow({
-      indexName: "test-docs",
+      namespace: "test-docs",
       data: ["./test-fixtures"],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }

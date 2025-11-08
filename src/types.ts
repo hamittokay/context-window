@@ -39,8 +39,8 @@ export interface LimitsConfig {
  * Options for creating a context window
  */
 export interface CreateContextWindowOptions {
-  /** Index name, used as default namespace */
-  indexName: string;
+  /** Namespace for organizing data */
+  namespace: string;
   /** File paths or directories to ingest */
   data: string | string[];
   /** AI provider configuration */
@@ -89,10 +89,9 @@ export interface Chunk {
  * Normalized options with defaults applied
  */
 export interface NormalizedOptions {
-  indexName: string;
+  namespace: string;
   dataPaths: string[];
   aiModel: string;
-  namespace: string;
   chunkSize: number;
   chunkOverlap: number;
   topK: number;

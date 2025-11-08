@@ -141,7 +141,7 @@ npm install
     PINECONE_INDEX=context-window
 
     # In code
-    indexName: "context-window"  # Must match
+    namespace: "context-window"  # Must match
     ```
   </Accordion>
 
@@ -398,7 +398,7 @@ for (const batch of batches) {
     vectorStore: { namespace: "docs-v1" }
 
     // Query - must use same namespace
-    // If using registry, indexName should match
+    // If using registry, namespace should match
     ```
   </Step>
 </Steps>
@@ -513,12 +513,12 @@ if (cache.has(question)) return cache.get(question);
 
     // Do in batches:
     await createCtxWindow({
-      indexName: "batch-1",
+      namespace: "batch-1",
       data: ["./docs/part1"]
     });
 
     await createCtxWindow({
-      indexName: "batch-2",
+      namespace: "batch-2",
       data: ["./docs/part2"]
     });
     ```
@@ -553,7 +553,7 @@ import { hasCtxWindow, createCtxWindow, getCtxWindow } from "context-window";
 // Check before retrieving
 if (!hasCtxWindow("my-docs")) {
   await createCtxWindow({
-    indexName: "my-docs",
+    namespace: "my-docs",
     data: ["./docs"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }

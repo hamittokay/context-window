@@ -24,7 +24,7 @@ async function createCtxWindow(
 <ParamField path="options" type="CreateContextWindowOptions" required>
   Configuration object for the context window
 
-  The `indexName` serves as both the Pinecone namespace and the registry key.
+  The `namespace` serves as both the Pinecone namespace and the registry key.
 </ParamField>
 
 <Note>
@@ -44,7 +44,7 @@ The registry pattern is useful for applications with multiple context windows or
 import { createCtxWindow } from "context-window";
 
 await createCtxWindow({
-  indexName: "user-docs",
+  namespace: "user-docs",
   data: ["./docs"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -66,7 +66,7 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 
 // Create and register
 await createCtxWindow({
-  indexName: "api-docs",
+  namespace: "api-docs",
   data: ["./api-documentation"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -85,19 +85,19 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 // Create multiple context windows for different purposes
 await Promise.all([
   createCtxWindow({
-    indexName: "user-manual",
+    namespace: "user-manual",
     data: ["./manuals/user"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
   }),
   createCtxWindow({
-    indexName: "admin-manual",
+    namespace: "admin-manual",
     data: ["./manuals/admin"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
   }),
   createCtxWindow({
-    indexName: "developer-docs",
+    namespace: "developer-docs",
     data: ["./docs/developers"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -124,7 +124,7 @@ const app = express();
 
 // Initialize on startup
 await createCtxWindow({
-  indexName: "knowledge-base",
+  namespace: "knowledge-base",
   data: ["./knowledge-base"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -159,14 +159,14 @@ export async function initializeContextWindows() {
   console.log("Initializing context windows...");
 
   await createCtxWindow({
-    indexName: "products",
+    namespace: "products",
     data: ["./data/products"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
   });
 
   await createCtxWindow({
-    indexName: "support",
+    namespace: "support",
     data: ["./data/support"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -218,14 +218,14 @@ Create and register context windows during application startup:
 ```typescript
 // Good: Initialize once at startup
 async function startup() {
-  await createCtxWindow({ indexName: "docs", /* ... */ });
+  await createCtxWindow({ namespace: "docs", /* ... */ });
   await startServer();
 }
 
 // Avoid: Creating on every request
 app.get("/ask", async (req, res) => {
   // Bad: Re-creating on every request
-  await createCtxWindow({ indexName: "docs", /* ... */ });
+  await createCtxWindow({ namespace: "docs", /* ... */ });
   // ...
 });
 ```
@@ -236,13 +236,13 @@ Choose clear, descriptive index names:
 
 ```typescript
 // Good
-await createCtxWindow({ indexName: "user-documentation", /* ... */ });
-await createCtxWindow({ indexName: "api-reference", /* ... */ });
-await createCtxWindow({ indexName: "troubleshooting-guide", /* ... */ });
+await createCtxWindow({ namespace: "user-documentation", /* ... */ });
+await createCtxWindow({ namespace: "api-reference", /* ... */ });
+await createCtxWindow({ namespace: "troubleshooting-guide", /* ... */ });
 
 // Avoid
-await createCtxWindow({ indexName: "docs1", /* ... */ });
-await createCtxWindow({ indexName: "data", /* ... */ });
+await createCtxWindow({ namespace: "docs1", /* ... */ });
+await createCtxWindow({ namespace: "data", /* ... */ });
 ```
 
 ### 3. Check Existence
@@ -254,7 +254,7 @@ import { hasCtxWindow, createCtxWindow } from "context-window";
 
 if (!hasCtxWindow("my-docs")) {
   await createCtxWindow({
-    indexName: "my-docs",
+    namespace: "my-docs",
     data: ["./docs"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -284,7 +284,7 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 
 try {
   await createCtxWindow({
-    indexName: "my-docs",
+    namespace: "my-docs",
     data: ["./documents"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }

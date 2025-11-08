@@ -75,7 +75,7 @@ When you call `ask()`, the following happens:
 
 ```typescript
 await createCtxWindow({
-  indexName: "user-manual",
+  namespace: "user-manual",
   data: ["./manual.pdf"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -173,7 +173,7 @@ const rl = readline.createInterface({
 });
 
 await createCtxWindow({
-  indexName: "docs",
+  namespace: "docs",
   data: ["./documentation"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -276,7 +276,7 @@ The retrieval is limited by the `limits` configuration:
 
 ```typescript
 await createCtxWindow({
-  indexName: "docs",
+  namespace: "docs",
   data: ["./docs"],
   limits: {
     topK: 8,                // Top 8 most relevant chunks

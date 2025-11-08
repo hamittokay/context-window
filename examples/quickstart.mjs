@@ -18,7 +18,7 @@ async function main() {
   // Create a context window with sample data
   // console.log("📚 Creating context window and ingesting documents...");
   // await createCtxWindow({
-  //   indexName: "american-history",
+  //   namespace: "american-history",
   //   data: ["./sample/README.md"],
   //   ai: { provider: "openai", model: "gpt-4o-mini" },
   //   vectorStore: { provider: "pinecone" },

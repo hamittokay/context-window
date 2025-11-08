@@ -18,12 +18,12 @@ Check if a context window exists in the registry.
 ### Signature
 
 ```typescript
-function hasCtxWindow(indexName: string): boolean
+function hasCtxWindow(namespace: string): boolean
 ```
 
 ### Parameters
 
-<ParamField path="indexName" type="string" required>
+<ParamField path="namespace" type="string" required>
   The index name to check for
 </ParamField>
 
@@ -39,7 +39,7 @@ import { hasCtxWindow, createCtxWindow, getCtxWindow } from "context-window";
 // Check before creating
 if (!hasCtxWindow("docs")) {
   await createCtxWindow({
-    indexName: "docs",
+    namespace: "docs",
     data: ["./documentation"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -63,7 +63,7 @@ async function ensureContextWindow(name: string, dataPath: string) {
   if (!hasCtxWindow(name)) {
     console.log(`Initializing ${name}...`);
     await createCtxWindow({
-      indexName: name,
+      namespace: name,
       data: [dataPath],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }
@@ -92,12 +92,12 @@ Remove a context window from the registry.
 ### Signature
 
 ```typescript
-function deleteCtxWindow(indexName: string): boolean
+function deleteCtxWindow(namespace: string): boolean
 ```
 
 ### Parameters
 
-<ParamField path="indexName" type="string" required>
+<ParamField path="namespace" type="string" required>
   The index name of the context window to remove
 </ParamField>
 
@@ -132,7 +132,7 @@ if (hasCtxWindow("old-docs")) {
 async function processTemporaryDocs() {
   // Create temporary context window
   await createCtxWindow({
-    indexName: "temp-analysis",
+    namespace: "temp-analysis",
     data: ["./temp"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -153,9 +153,9 @@ async function processTemporaryDocs() {
 ```typescript
 class SessionManager {
   async createUserSession(userId: string, documents: string[]) {
-    const indexName = `session-${userId}`;
+    const namespace = `session-${userId}`;
     await createCtxWindow({
-      indexName,
+      namespace,
       data: documents,
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }
@@ -163,8 +163,8 @@ class SessionManager {
   }
 
   endUserSession(userId: string) {
-    const indexName = `session-${userId}`;
-    deleteCtxWindow(indexName);
+    const namespace = `session-${userId}`;
+    deleteCtxWindow(namespace);
   }
 }
 ```
@@ -240,7 +240,7 @@ describe("Context Window Tests", () => {
 
   it("should answer questions", async () => {
     await createCtxWindow({
-      indexName: "test-docs",
+      namespace: "test-docs",
       data: ["./test-data"],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }
@@ -292,14 +292,14 @@ import { listCtxWindows, createCtxWindow } from "context-window";
 
 // Create some context windows
 await createCtxWindow({
-  indexName: "user-docs",
+  namespace: "user-docs",
   data: ["./docs/users"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
 
 await createCtxWindow({
-  indexName: "admin-docs",
+  namespace: "admin-docs",
   data: ["./docs/admin"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -435,7 +435,7 @@ class UserSessionManager {
     }
 
     await createCtxWindow({
-      indexName: sessionId,
+      namespace: sessionId,
       data: documents,
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }
@@ -488,15 +488,15 @@ class TenantManager {
   private prefix = "tenant-";
 
   async initializeTenant(tenantId: string, documents: string[]) {
-    const indexName = `${this.prefix}${tenantId}`;
+    const namespace = `${this.prefix}${tenantId}`;
 
-    if (hasCtxWindow(indexName)) {
+    if (hasCtxWindow(namespace)) {
       console.log(`Tenant ${tenantId} already initialized`);
       return;
     }
 
     await createCtxWindow({
-      indexName,
+      namespace,
       data: documents,
       ai: { provider: "openai" },
       vectorStore: {
@@ -507,13 +507,13 @@ class TenantManager {
   }
 
   getTenantContextWindow(tenantId: string) {
-    const indexName = `${this.prefix}${tenantId}`;
+    const namespace = `${this.prefix}${tenantId}`;
 
-    if (!hasCtxWindow(indexName)) {
+    if (!hasCtxWindow(namespace)) {
       throw new Error(`Tenant ${tenantId} not initialized`);
     }
 
-    return getCtxWindow(indexName);
+    return getCtxWindow(namespace);
   }
 
   listTenants(): string[] {
@@ -546,7 +546,7 @@ async function initializeEnvironment() {
 
   if (env === "production") {
     await createCtxWindow({
-      indexName: "prod-docs",
+      namespace: "prod-docs",
       data: ["./docs/production"],
       ai: { provider: "openai", model: "gpt-4o" },
       vectorStore: {
@@ -556,7 +556,7 @@ async function initializeEnvironment() {
     });
   } else {
     await createCtxWindow({
-      indexName: "dev-docs",
+      namespace: "dev-docs",
       data: ["./docs/development"],
       ai: { provider: "openai", model: "gpt-4o-mini" },
       vectorStore: {
@@ -609,7 +609,7 @@ if (hasCtxWindow(CONTEXT_WINDOWS.USERS)) {
 ```typescript
 try {
   await createCtxWindow({
-    indexName: "temp",
+    namespace: "temp",
     data: ["./temp"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }

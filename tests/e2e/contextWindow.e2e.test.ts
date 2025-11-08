@@ -44,7 +44,7 @@ describe("ContextWindow E2E", () => {
 
   it("should create a context window and answer questions", async () => {
     const cw = await createContextWindow({
-      indexName: "test-project",
+      namespace: "test-project",
       data: ["./test.txt"],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" },
@@ -63,7 +63,7 @@ describe("ContextWindow E2E", () => {
 
   it("should cite sources in the result", async () => {
     const cw = await createContextWindow({
-      indexName: "test-project",
+      namespace: "test-project",
       data: ["./document.txt"],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" },
@@ -78,7 +78,7 @@ describe("ContextWindow E2E", () => {
   it("should return 'I don't know' when no relevant context found", async () => {
     // Create a context window with custom limits that will result in no matches
     const cw = await createContextWindow({
-      indexName: "test-project",
+      namespace: "test-project",
       data: ["./test.txt"],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" },
@@ -101,7 +101,7 @@ describe("ContextWindow E2E", () => {
 
   it("should handle multiple data files", async () => {
     const cw = await createContextWindow({
-      indexName: "test-project",
+      namespace: "test-project",
       data: ["./file1.txt", "./file2.txt"],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" },
@@ -115,7 +115,7 @@ describe("ContextWindow E2E", () => {
 
   it("should respect custom chunk and limit options", async () => {
     const cw = await createContextWindow({
-      indexName: "test-project",
+      namespace: "test-project",
       data: ["./test.txt"],
       ai: { provider: "openai", model: "gpt-4o-mini" },
       vectorStore: { provider: "pinecone", namespace: "custom-ns" },

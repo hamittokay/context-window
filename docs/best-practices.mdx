@@ -260,7 +260,7 @@ limits: { maxContextChars: 12000 }
 ```typescript
 // Cost-optimized configuration
 await createCtxWindow({
-  indexName: "budget-docs",
+  namespace: "budget-docs",
   data: ["./docs"],
   chunk: { size: 2000, overlap: 100 },     // Fewer chunks
   limits: {
@@ -273,7 +273,7 @@ await createCtxWindow({
 
 // Quality-optimized configuration
 await createCtxWindow({
-  indexName: "premium-docs",
+  namespace: "premium-docs",
   data: ["./docs"],
   chunk: { size: 1500, overlap: 250 },     // Balanced chunks
   limits: {
@@ -295,7 +295,7 @@ Create context windows during application startup, not on-demand:
 // Good: Initialize once at startup
 async function startup() {
   await createCtxWindow({
-    indexName: "docs",
+    namespace: "docs",
     data: ["./documentation"],
     ai: { provider: "openai" },
     vectorStore: { provider: "pinecone" }
@@ -319,7 +319,7 @@ For applications with multiple context windows:
 ```typescript
 // Good: Create once, use many times
 await createCtxWindow({
-  indexName: "user-docs",
+  namespace: "user-docs",
   data: ["./docs/users"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
@@ -532,9 +532,9 @@ async function monitoredAsk(cw: ContextWindow, question: string) {
 
 ```typescript
 // Initialization
-console.log("Creating context window:", indexName);
+console.log("Creating context window:", namespace);
 await createCtxWindow({ /* ... */ });
-console.log("Context window ready:", indexName);
+console.log("Context window ready:", namespace);
 
 // Queries
 console.log("Question received:", question);
@@ -562,7 +562,7 @@ describe("Context Window", () => {
 
   beforeAll(async () => {
     cw = await createCtxWindow({
-      indexName: "test",
+      namespace: "test",
       data: ["./test-fixtures"],
       ai: { provider: "openai" },
       vectorStore: { provider: "pinecone" }

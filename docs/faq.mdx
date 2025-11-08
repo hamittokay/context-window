@@ -76,7 +76,7 @@ Yes! Change the `model` parameter:
 
 ```typescript
 await createCtxWindow({
-  indexName: "my-project",
+  namespace: "my-project",
   data: ["./docs"],
   ai: {
     provider: "openai",
@@ -205,14 +205,14 @@ Ingestion time depends on:
 **Possible causes**:
 
 1. **Documents didn't ingest**: Check for errors during `createCtxWindow()`
-2. **Wrong namespace**: Ensure you're using the same `indexName`
+2. **Wrong namespace**: Ensure you're using the same `namespace`
 3. **Score threshold too high**: Try lowering or removing `scoreThreshold`
 4. **Question too different from content**: Try rephrasing your question
 
 **Debug steps**:
 ```typescript
 await createCtxWindow({
-  indexName: "my-docs",
+  namespace: "my-docs",
   data: ["./my-file.pdf"],
   limits: {
     topK: 10,              // Retrieve more chunks

@@ -18,15 +18,15 @@ import { ingestPaths } from "../io/ingest.js";
 function normalizeOptions(opts: CreateContextWindowOptions): NormalizedOptions {
   const dataPaths = Array.isArray(opts.data) ? opts.data : [opts.data];
   const aiModel = opts.ai?.model || "gpt-4o-mini";
-  const namespace = opts.vectorStore?.namespace || opts.indexName;
+  const namespace = opts.vectorStore?.namespace || opts.namespace;
   const chunkSize = opts.chunk?.size || 1000;
   const chunkOverlap = opts.chunk?.overlap || 150;
   const topK = opts.limits?.topK || 8;
   const maxContextChars = opts.limits?.maxContextChars || 8000;
   const scoreThreshold = opts.limits?.scoreThreshold || 0;
 
-  if (!opts.indexName) {
-    throw new Error("indexName is required");
+  if (!opts.namespace) {
+    throw new Error("namespace is required");
   }
 
   if (dataPaths.length === 0) {
@@ -34,10 +34,9 @@ function normalizeOptions(opts: CreateContextWindowOptions): NormalizedOptions {
   }
 
   return {
-    indexName: opts.indexName,
+    namespace: opts.namespace,
     dataPaths,
     aiModel,
-    namespace,
     chunkSize,
     chunkOverlap,
     topK,
@@ -102,14 +101,14 @@ ${context}`;
  * Create a context window instance without ingesting data.
  * This is useful for connecting to an existing Pinecone namespace.
  *
- * @param indexName - The index/namespace name
+ * @param namespace - The namespace name
  * @param options - Optional configuration overrides
  * @returns A ContextWindow instance
  *
  * @internal
  */
 export function createContextWindowWithoutIngestion(
-  indexName: string,
+  namespace: string,
   options?: {
     aiModel?: string;
     namespace?: string;
@@ -120,7 +119,7 @@ export function createContextWindowWithoutIngestion(
 ): ContextWindow {
   const config = {
     aiModel: options?.aiModel || "gpt-4o-mini",
-    namespace: options?.namespace || indexName,
+    namespace: options?.namespace || namespace,
     topK: options?.topK || 8,
     maxContextChars: options?.maxContextChars || 8000,
     scoreThreshold: options?.scoreThreshold || 0,
@@ -189,7 +188,7 @@ export function createContextWindowWithoutIngestion(
  * @example
  * ```ts
  * const cw = await createContextWindow({
- *   indexName: "my-book",
+ *   namespace: "my-book",
  *   data: ["./my-book.pdf"],
  *   ai: { provider: "openai", model: "gpt-4o-mini" },
  *   vectorStore: { provider: "pinecone" }

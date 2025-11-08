@@ -120,7 +120,7 @@ import { createCtxWindow, getCtxWindow } from "context-window";
 
 // Create a context window with your documents
 await createCtxWindow({
-  indexName: "my-docs",
+  namespace: "my-docs",
   data: ["./documents"],
   ai: { provider: "openai", model: "gpt-4o-mini" },
   vectorStore: { provider: "pinecone" }
@@ -156,7 +156,7 @@ When you create a context window, here's what happens:
 
 ```typescript
 await createCtxWindow({
-  indexName: "my-docs",
+  namespace: "my-docs",
   data: ["./docs"],
   ai: {
     provider: "openai",
@@ -172,7 +172,7 @@ const cw = getCtxWindow("my-docs");
 
 ```typescript
 await createCtxWindow({
-  indexName: "my-docs",
+  namespace: "my-docs",
   data: ["./docs"],
   chunk: {
     size: 1500,    // Larger chunks for more context
@@ -189,7 +189,7 @@ const cw = getCtxWindow("my-docs");
 
 ```typescript
 await createCtxWindow({
-  indexName: "my-docs",
+  namespace: "my-docs",
   data: ["./docs"],
   limits: {
     topK: 5,               // Retrieve top 5 most relevant chunks
