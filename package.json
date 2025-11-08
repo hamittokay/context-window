@@ -12,7 +12,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
@@ -21,7 +23,11 @@
     "test": "vitest run",
     "check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build && npm run check && npm run test",
+    "prepack": "npm run build",
+    "publish:dry": "npm publish --dry-run",
+    "pack:check": "npm pack --dry-run",
+    "verify-ready": "./scripts/verify-publish-ready.sh"
   },
   "keywords": [
     "rag",
@@ -30,9 +36,24 @@
     "pinecone",
     "embeddings",
     "vector-search",
-    "context-window"
+    "context-window",
+    "ai",
+    "llm",
+    "chatbot",
+    "semantic-search",
+    "document-qa",
+    "vector-database",
+    "typescript"
   ],
-  "author": "",
+  "author": "Hamit Tokay <hamittokay@gmail.com> (https://github.com/hamittokay)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hamittokay/context-window.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hamittokay/context-window/issues"
+  },
+  "homepage": "https://github.com/hamittokay/context-window#readme",
   "license": "MIT",
   "dependencies": {
     "@pinecone-database/pinecone": "^3.0.3",
