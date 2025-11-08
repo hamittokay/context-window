@@ -22,13 +22,13 @@ async function createCtxWindow(
 ## Parameters
 
 <ParamField path="options" type="CreateContextWindowOptions" required>
-  Same configuration object as [`createContextWindow()`](/api-reference/create-context-window)
+  Configuration object for the context window
 
   The `indexName` serves as both the Pinecone namespace and the registry key.
 </ParamField>
 
 <Note>
-  See [createContextWindow documentation](/api-reference/create-context-window) for detailed parameter descriptions.
+  See [Configuration documentation](/api-reference/configuration) for detailed parameter descriptions.
 </Note>
 
 ## Return Value
@@ -325,34 +325,17 @@ The registry pattern works with several utility functions:
 
 ## When to Use
 
-<Tabs>
-  <Tab title="Use createCtxWindow">
-    **Choose `createCtxWindow()` when:**
+**Use `createCtxWindow()` for:**
 
-    - You need to access the context window from multiple modules
-    - Building a web server with route handlers
-    - Managing multiple context windows
-    - Want cleaner code without passing instances around
-    - Need global access to instances
-  </Tab>
-
-  <Tab title="Use createContextWindow">
-    **Choose `createContextWindow()` when:**
-
-    - Building a simple script or CLI tool
-    - Only need one context window
-    - Prefer explicit instance management
-    - Want to avoid global state
-    - Need to pass instances as dependencies
-  </Tab>
-</Tabs>
+- Accessing the context window from multiple modules
+- Building web servers with route handlers
+- Managing multiple context windows
+- Cleaner code without passing instances around
+- Global access to instances across your application
 
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="createContextWindow" icon="plus" href="/api-reference/create-context-window">
-    Direct creation without registry
-  </Card>
   <Card title="getCtxWindow" icon="download" href="/api-reference/get-ctx-window">
     Retrieve registered instances
   </Card>
@@ -361,6 +344,9 @@ The registry pattern works with several utility functions:
   </Card>
   <Card title="ask()" icon="message-question" href="/api-reference/ask">
     Query context windows
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/api-reference/configuration">
+    Detailed configuration options
   </Card>
 </CardGroup>
 

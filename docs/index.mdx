@@ -116,15 +116,18 @@ Every answer includes references to the source documents used, making it easy to
 Create your first RAG application in minutes:
 
 ```typescript
-import { createContextWindow } from "context-window";
+import { createCtxWindow, getCtxWindow } from "context-window";
 
 // Create a context window with your documents
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-docs",
   data: ["./documents"],
   ai: { provider: "openai", model: "gpt-4o-mini" },
   vectorStore: { provider: "pinecone" }
 });
+
+// Retrieve and use it
+const cw = getCtxWindow("my-docs");
 
 // Ask a question
 const { text, sources } = await cw.ask("What is the main topic?");
@@ -152,7 +155,7 @@ When you create a context window, here's what happens:
 ### Using Different Models
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-docs",
   data: ["./docs"],
   ai: {
@@ -161,12 +164,14 @@ const cw = await createContextWindow({
   },
   vectorStore: { provider: "pinecone" }
 });
+
+const cw = getCtxWindow("my-docs");
 ```
 
 ### Adjusting Chunk Size
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-docs",
   data: ["./docs"],
   chunk: {
@@ -176,12 +181,14 @@ const cw = await createContextWindow({
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
+
+const cw = getCtxWindow("my-docs");
 ```
 
 ### Fine-tuning Retrieval
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-docs",
   data: ["./docs"],
   limits: {
@@ -192,6 +199,8 @@ const cw = await createContextWindow({
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
+
+const cw = getCtxWindow("my-docs");
 ```
 
 ## Troubleshooting

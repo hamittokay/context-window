@@ -74,7 +74,7 @@ When you call `ask()`, the following happens:
 ### Basic Question
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "user-manual",
   data: ["./manual.pdf"],
   ai: { provider: "openai" },
@@ -165,14 +165,14 @@ app.listen(3000);
 
 ```typescript
 import readline from "readline";
-import { createContextWindow } from "context-window";
+import { createCtxWindow, getCtxWindow } from "context-window";
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "docs",
   data: ["./documentation"],
   ai: { provider: "openai" },
@@ -275,7 +275,7 @@ console.log(result.sources);
 The retrieval is limited by the `limits` configuration:
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "docs",
   data: ["./docs"],
   limits: {

@@ -443,7 +443,7 @@ limits: {
 ### General Purpose Configuration
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "general-docs",
   data: ["./documentation"],
   ai: {
@@ -468,7 +468,7 @@ const cw = await createContextWindow({
 ### High-Accuracy Configuration
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "research-papers",
   data: ["./papers"],
   ai: {
@@ -491,7 +491,7 @@ const cw = await createContextWindow({
 ### Cost-Optimized Configuration
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "faq",
   data: ["./faq.md"],
   ai: {
@@ -514,7 +514,7 @@ const cw = await createContextWindow({
 ### Legal/Compliance Configuration
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "legal-docs",
   data: ["./contracts", "./policies"],
   ai: {
@@ -587,7 +587,7 @@ interface LimitsConfig {
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="createContextWindow" icon="plus" href="/api-reference/create-context-window">
+  <Card title="createCtxWindow" icon="plus" href="/api-reference/create-ctx-window">
     Main function using these options
   </Card>
   <Card title="Best Practices" icon="star" href="/best-practices">

@@ -14,9 +14,9 @@ Build chatbots and assistants that answer questions from your documentation.
 ### Knowledge Base Bot
 
 ```typescript
-import { createContextWindow } from "context-window";
+import { createCtxWindow, getCtxWindow } from "context-window";
 
-const kb = await createContextWindow({
+const kb = await createCtxWindow({
   indexName: "knowledge-base",
   data: ["./docs/kb"],
   ai: { provider: "openai", model: "gpt-4o-mini" },
@@ -74,7 +74,7 @@ Query across multiple research papers, articles, or books.
 ### Academic Research
 
 ```typescript
-const research = await createContextWindow({
+const research = await createCtxWindow({
   indexName: "research-papers",
   data: [
     "./papers/machine-learning",
@@ -110,7 +110,7 @@ const result2 = await research.ask(
 ### Market Research Analysis
 
 ```typescript
-const market = await createContextWindow({
+const market = await createCtxWindow({
   indexName: "market-research",
   data: [
     "./reports/2023",
@@ -195,7 +195,7 @@ Create AI tutors that answer questions from textbooks and lecture notes.
 ### Study Assistant
 
 ```typescript
-const studyAssistant = await createContextWindow({
+const studyAssistant = await createCtxWindow({
   indexName: "biology-101",
   data: [
     "./textbooks/biology",
@@ -376,7 +376,7 @@ Search and query through contracts, policies, and legal documents.
 ### Contract Analysis
 
 ```typescript
-const legal = await createContextWindow({
+const legal = await createCtxWindow({
   indexName: "contracts",
   data: ["./contracts", "./agreements"],
   chunk: {
@@ -409,7 +409,7 @@ const pricing = await legal.ask(
 ### Policy Compliance Checker
 
 ```typescript
-const policies = await createContextWindow({
+const policies = await createCtxWindow({
   indexName: "company-policies",
   data: [
     "./policies/hr",
@@ -446,7 +446,7 @@ Find relevant information across large document collections.
 ### Document Search Engine
 
 ```typescript
-const archive = await createContextWindow({
+const archive = await createCtxWindow({
   indexName: "company-archive",
   data: [
     "./archive/2020",
@@ -516,7 +516,7 @@ class WikiSearch {
 ### Medical Information Assistant
 
 ```typescript
-const medical = await createContextWindow({
+const medical = await createCtxWindow({
   indexName: "medical-literature",
   data: ["./medical-papers", "./clinical-guidelines"],
   chunk: { size: 1500, overlap: 250 },
@@ -541,7 +541,7 @@ const treatment = await medical.ask(
 ### Real Estate Property Search
 
 ```typescript
-const properties = await createContextWindow({
+const properties = await createCtxWindow({
   indexName: "property-listings",
   data: ["./listings", "./property-details"],
   ai: { provider: "openai" },
@@ -561,7 +561,7 @@ const investment = await properties.ask(
 ### Recipe & Cooking Assistant
 
 ```typescript
-const recipes = await createContextWindow({
+const recipes = await createCtxWindow({
   indexName: "recipe-collection",
   data: ["./recipes", "./cookbooks"],
   ai: { provider: "openai" },

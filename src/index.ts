@@ -4,7 +4,6 @@
  * @packageDocumentation
  */
 
-export { createContextWindow } from "./core/ContextWindow.js";
 export {
   createCtxWindow,
   getCtxWindow,

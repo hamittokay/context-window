@@ -19,7 +19,7 @@ All main functions are exported from the root package:
 
 ```typescript
 import {
-  createContextWindow,
+  createCtxWindow,
   createCtxWindow,
   getCtxWindow,
   hasCtxWindow,
@@ -34,9 +34,9 @@ import {
 The simplest way to use context-window:
 
 ```typescript
-import { createContextWindow } from "context-window";
+import { createCtxWindow } from "context-window";
 
-const cw = await createContextWindow({
+const cw = await createCtxWindow({
   indexName: "my-docs",
   data: ["./documents"],
   ai: { provider: "openai" },
@@ -56,7 +56,7 @@ context-window offers two main patterns for managing context windows:
 Create and use a context window directly:
 
 ```typescript
-const cw = await createContextWindow({ /* options */ });
+const cw = await createCtxWindow({ /* options */ });
 const result = await cw.ask("Your question");
 ```
 
@@ -161,7 +161,7 @@ All functions use standard error handling patterns:
 
 ```typescript
 try {
-  const cw = await createContextWindow({
+  const cw = await createCtxWindow({
     indexName: "my-docs",
     data: ["./documents"],
     ai: { provider: "openai" },
@@ -185,7 +185,7 @@ Common errors:
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="createContextWindow" icon="plus" href="/api-reference/create-context-window">
+  <Card title="createCtxWindow" icon="plus" href="/api-reference/create-context-window">
     Learn about the direct creation pattern
   </Card>
   <Card title="createCtxWindow" icon="folder-plus" href="/api-reference/create-ctx-window">

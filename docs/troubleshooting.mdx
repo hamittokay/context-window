@@ -344,7 +344,7 @@ chunk: { size: 2000, overlap: 100 }
 
 // Process in batches
 for (const batch of batches) {
-  await createContextWindow({ data: batch, /* ... */ });
+  await createCtxWindow({ data: batch, /* ... */ });
 }
 ```
 
@@ -360,7 +360,7 @@ for (const batch of batches) {
 
 <Steps>
   <Step title="Verify ingestion succeeded">
-    Check console output during `createContextWindow()` for errors
+    Check console output during `createCtxWindow()` for errors
   </Step>
 
   <Step title="Remove score threshold">
@@ -512,12 +512,12 @@ if (cache.has(question)) return cache.get(question);
     data: ["./all-docs"]
 
     // Do in batches:
-    await createContextWindow({
+    await createCtxWindow({
       indexName: "batch-1",
       data: ["./docs/part1"]
     });
 
-    await createContextWindow({
+    await createCtxWindow({
       indexName: "batch-2",
       data: ["./docs/part2"]
     });

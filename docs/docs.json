@@ -42,7 +42,6 @@
           {
             "group": "Core Functions",
             "pages": [
-              "api-reference/create-context-window",
               "api-reference/create-ctx-window",
               "api-reference/get-ctx-window",
               "api-reference/ask"

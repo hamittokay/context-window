@@ -259,7 +259,7 @@ limits: { maxContextChars: 12000 }
 
 ```typescript
 // Cost-optimized configuration
-const budget = await createContextWindow({
+await createCtxWindow({
   indexName: "budget-docs",
   data: ["./docs"],
   chunk: { size: 2000, overlap: 100 },     // Fewer chunks
@@ -272,7 +272,7 @@ const budget = await createContextWindow({
 });
 
 // Quality-optimized configuration
-const premium = await createContextWindow({
+await createCtxWindow({
   indexName: "premium-docs",
   data: ["./docs"],
   chunk: { size: 1500, overlap: 250 },     // Balanced chunks
@@ -307,7 +307,7 @@ async function startup() {
 // Bad: Creating on every request
 app.get("/ask", async (req, res) => {
   // This re-ingests documents every time!
-  const cw = await createContextWindow({ /* ... */ });
+  await createCtxWindow({ /* ... */ });
   // ...
 });
 ```
@@ -332,7 +332,7 @@ function handleUserQuestion(q: string) {
 }
 
 // Bad: Passing instances around
-const cw = await createContextWindow({ /* ... */ });
+await createCtxWindow({ /* ... */ });
 handleQuestion(cw, q);  // Coupling, harder to maintain
 ```
 
@@ -561,7 +561,7 @@ describe("Context Window", () => {
   let cw: ContextWindow;
 
   beforeAll(async () => {
-    cw = await createContextWindow({
+    cw = await createCtxWindow({
       indexName: "test",
       data: ["./test-fixtures"],
       ai: { provider: "openai" },

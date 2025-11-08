@@ -110,15 +110,17 @@ PINECONE_ENVIRONMENT=us-east-1
 
 **ESM (ES Modules):**
 ```typescript
-import { createContextWindow } from "context-window";
+import { createCtxWindow, getCtxWindow } from "context-window";
 
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-book",
   data: ["./my-book.pdf"],           // .txt/.md/.pdf supported
   ai: { provider: "openai", model: "gpt-4o-mini" },
   vectorStore: { provider: "pinecone" }
 });
 
+// Later, retrieve and use it
+const cw = getCtxWindow("my-book");
 const { text, sources } = await cw.ask("When was America founded?");
 console.log(text);     // "America was founded in 1776..."
 console.log(sources);  // ["my-book.pdf"]
@@ -126,16 +128,18 @@ console.log(sources);  // ["my-book.pdf"]
 
 **CommonJS:**
 ```javascript
-const { createContextWindow } = require("context-window");
+const { createCtxWindow, getCtxWindow } = require("context-window");
 
 (async () => {
-  const cw = await createContextWindow({
+  await createCtxWindow({
     indexName: "my-book",
     data: ["./my-book.pdf"],
     ai: { provider: "openai", model: "gpt-4o-mini" },
     vectorStore: { provider: "pinecone" }
   });
 
+  // Later, retrieve and use it
+  const cw = getCtxWindow("my-book");
   const { text, sources } = await cw.ask("When was America founded?");
   console.log(text);     // "America was founded in 1776..."
   console.log(sources);  // ["my-book.pdf"]
@@ -160,7 +164,7 @@ That's it! Three steps: configure, create, ask.
 
 ## API Reference
 
-### `createCtxWindow(options)` (Recommended)
+### `createCtxWindow(options)`
 
 Creates and registers a context window instance by ingesting documents and setting up the RAG pipeline. The context window can later be retrieved using `getCtxWindow()`.
 
@@ -188,24 +192,7 @@ const cw = getCtxWindow("american-history");
 const result = await cw.ask("Your question here");
 ```
 
-**Throws an error** if no context window with the given name exists.
-
-### `createContextWindow(options)` (Alternative)
-
-Creates a context window instance directly without registering it. Use this if you don't need the registry pattern.
-
-```typescript
-import { createContextWindow } from "context-window";
-
-const cw = await createContextWindow({
-  indexName: "my-book",
-  data: ["./my-book.pdf"],
-  ai: { provider: "openai", model: "gpt-4o-mini" },
-  vectorStore: { provider: "pinecone" }
-});
-
-const result = await cw.ask("Your question here");
-```
+If the context window is not in the registry, it creates a new connection to the existing Pinecone namespace with that name.
 
 #### Options
 
@@ -321,18 +308,20 @@ Your Question → Embed → Search Pinecone → Retrieve Chunks → Generate Ans
 ### Ingest a directory
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "documentation",
   data: ["./docs"],  // Recursively processes all .txt/.md/.pdf files
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
+
+const cw = getCtxWindow("documentation");
 ```
 
 ### Multiple files
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "research",
   data: [
     "./papers/paper1.pdf",
@@ -342,12 +331,14 @@ const cw = await createContextWindow({
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
+
+const cw = getCtxWindow("research");
 ```
 
 ### Custom chunk size
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "legal-docs",
   data: ["./contracts"],
   chunk: {
@@ -357,12 +348,14 @@ const cw = await createContextWindow({
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
+
+const cw = getCtxWindow("legal-docs");
 ```
 
 ### Filter by similarity score
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "technical-manual",
   data: ["./manual.pdf"],
   limits: {
@@ -371,6 +364,8 @@ const cw = await createContextWindow({
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
+
+const cw = getCtxWindow("technical-manual");
 ```
 
 ## Supported File Types
@@ -401,7 +396,7 @@ The `chunk.size` parameter affects answer quality:
 
 ```typescript
 // For high-precision needs (research, legal)
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "legal-docs",
   data: ["./contracts"],
   limits: {
@@ -412,7 +407,7 @@ const cw = await createContextWindow({
 });
 
 // For comprehensive coverage (documentation, knowledge base)
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "docs",
   data: ["./documentation"],
   limits: {
@@ -449,16 +444,20 @@ Use different `indexName` values to keep data separate:
 
 ```typescript
 // Customer support bot
-const supportBot = await createContextWindow({
+await createCtxWindow({
   indexName: "customer-support",    // Namespace: customer-support
   data: ["./support-docs"]
 });
 
 // Internal knowledge base
-const internalKB = await createContextWindow({
+await createCtxWindow({
   indexName: "internal-kb",         // Namespace: internal-kb
   data: ["./internal-docs"]
 });
+
+// Use them later
+const supportBot = getCtxWindow("customer-support");
+const internalKB = getCtxWindow("internal-kb");
 ```
 
 Each index gets its own Pinecone namespace, preventing data mixing.
@@ -551,7 +550,7 @@ Currently, you need to delete via Pinecone Console:
 Yes! Change the `model` parameter:
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-project",
   data: ["./docs"],
   ai: {
@@ -559,6 +558,8 @@ const cw = await createContextWindow({
     model: "gpt-4o"  // or "gpt-4-turbo", "gpt-3.5-turbo", etc.
   }
 });
+
+const cw = getCtxWindow("my-project");
 ```
 
 **Note**: Only OpenAI models are supported in v1. Other providers (Anthropic, Cohere) are on the roadmap.
@@ -711,7 +712,7 @@ For Pinecone, check [app.pinecone.io](https://app.pinecone.io/) API Keys section
 #### "I don't know based on the uploaded files" for every question
 
 **Possible causes**:
-1. **Documents didn't ingest**: Check for errors during `createContextWindow()`
+1. **Documents didn't ingest**: Check for errors during `createCtxWindow()`
 2. **Wrong namespace**: Ensure you're using the same `indexName` value
 3. **Score threshold too high**: Try lowering or removing `scoreThreshold`
 4. **Question too different from content**: Try rephrasing your question
@@ -719,7 +720,7 @@ For Pinecone, check [app.pinecone.io](https://app.pinecone.io/) API Keys section
 **Debug steps**:
 ```typescript
 // Add more context and lower threshold
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-project",
   data: ["./my-file.pdf"],
   limits: {
@@ -730,6 +731,8 @@ const cw = await createContextWindow({
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
+
+const cw = getCtxWindow("my-project");
 ```
 
 ### Getting Help
@@ -837,39 +840,43 @@ Built with:
 
 ```typescript
 // 🚀 Quick & Simple (defaults)
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-docs",
   data: ["./docs"],
   ai: { provider: "openai" },
   vectorStore: { provider: "pinecone" }
 });
+const cw = getCtxWindow("my-docs");
 
 // 🎯 High Precision (legal, research)
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "legal",
   data: ["./contracts"],
   chunk: { size: 1500, overlap: 200 },
   limits: { topK: 5, scoreThreshold: 0.75 },
   ai: { provider: "openai", model: "gpt-4o" }
 });
+const legal = getCtxWindow("legal");
 
 // 📚 Comprehensive Coverage (documentation)
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "docs",
   data: ["./documentation"],
   chunk: { size: 1000, overlap: 150 },
   limits: { topK: 12, maxContextChars: 12000 },
   ai: { provider: "openai", model: "gpt-4o-mini" }
 });
+const docs = getCtxWindow("docs");
 
 // 💰 Cost-Optimized (budget-conscious)
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "budget",
   data: ["./data"],
   chunk: { size: 2000, overlap: 100 },  // Fewer chunks
   limits: { topK: 5, scoreThreshold: 0.6 },  // Less retrieval
   ai: { provider: "openai", model: "gpt-4o-mini" }
 });
+const budget = getCtxWindow("budget");
 ```
 
 ### Parameter Cheat Sheet

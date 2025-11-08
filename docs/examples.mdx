@@ -8,9 +8,9 @@ description: 'Complete code examples for common scenarios'
 ### Simple File Ingestion
 
 ```typescript
-import { createContextWindow } from "context-window";
+import { createCtxWindow, getCtxWindow } from "context-window";
 
-const cw = await createContextWindow({
+const cw = await createCtxWindow({
   indexName: "single-file",
   data: ["./document.pdf"],
   ai: { provider: "openai" },
@@ -26,7 +26,7 @@ console.log(result.text);
  Multiple Files
 
 ```typescript
-const cw = await createContextWindow({
+const cw = await createCtxWindow({
   indexName: "multiple-files",
   data: [
     "./intro.md",
@@ -55,7 +55,7 @@ for (const question of questions) {
 
 ```typescript
 // Process all supported files in a directory recursively
-const cw = await createContextWindow({
+const cw = await createCtxWindow({
   indexName: "documentation",
   data: ["./docs"],  // Will find all .txt, .md, .pdf files
   ai: { provider: "openai" },
@@ -73,7 +73,7 @@ console.log(`Sources: ${result.sources.join(", ")}`);
 
 ```typescript
 // Larger chunks for comprehensive answers
-const largeCw = await createContextWindow({
+const largeCw = await createCtxWindow({
   indexName: "legal-docs",
   data: ["./contracts"],
   chunk: {
@@ -85,7 +85,7 @@ const largeCw = await createContextWindow({
 });
 
 // Smaller chunks for precise answers
-const smallCw = await createContextWindow({
+const smallCw = await createCtxWindow({
   indexName: "faq",
   data: ["./faq.md"],
   chunk: {
@@ -100,7 +100,7 @@ const smallCw = await createContextWindow({
 ### Fine-tuned Retrieval
 
 ```typescript
-const cw = await createContextWindow({
+const cw = await createCtxWindow({
   indexName: "technical-docs",
   data: ["./technical"],
   limits: {
@@ -346,7 +346,7 @@ export function QuestionForm() {
 ```typescript
 #!/usr/bin/env node
 import readline from "readline";
-import { createContextWindow } from "context-window";
+import { createCtxWindow, getCtxWindow } from "context-window";
 import { Command } from "commander";
 
 const program = new Command();
@@ -358,7 +358,7 @@ program
   .action(async (directory) => {
     console.log("Loading documents...");
 
-    const cw = await createContextWindow({
+    const cw = await createCtxWindow({
       indexName: "cli-docs",
       data: [directory],
       ai: { provider: "openai" },
@@ -454,13 +454,13 @@ client.login(process.env.DISCORD_TOKEN);
 
 ```typescript
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { createContextWindow } from "context-window";
+import { createCtxWindow, getCtxWindow } from "context-window";
 
 describe("Context Window", () => {
   let cw: ContextWindow;
 
   beforeAll(async () => {
-    cw = await createContextWindow({
+    cw = await createCtxWindow({
       indexName: "test-docs",
       data: ["./test-fixtures"],
       ai: { provider: "openai" },

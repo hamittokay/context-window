@@ -75,7 +75,7 @@ context-window uses **strict RAG**, so it won't hallucinate. If it doesn't know,
 Yes! Change the `model` parameter:
 
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-project",
   data: ["./docs"],
   ai: {
@@ -204,14 +204,14 @@ Ingestion time depends on:
 
 **Possible causes**:
 
-1. **Documents didn't ingest**: Check for errors during `createContextWindow()`
+1. **Documents didn't ingest**: Check for errors during `createCtxWindow()`
 2. **Wrong namespace**: Ensure you're using the same `indexName`
 3. **Score threshold too high**: Try lowering or removing `scoreThreshold`
 4. **Question too different from content**: Try rephrasing your question
 
 **Debug steps**:
 ```typescript
-const cw = await createContextWindow({
+await createCtxWindow({
   indexName: "my-docs",
   data: ["./my-file.pdf"],
   limits: {
@@ -345,9 +345,9 @@ Yes! See the [Examples](/examples) page for complete Express integration example
 Yes! context-window is written in TypeScript with full type definitions:
 
 ```typescript
-import { createContextWindow, ContextWindow, AskResult } from "context-window";
+import { createCtxWindow, getCtxWindow, ContextWindow, AskResult } from "context-window";
 
-const cw: ContextWindow = await createContextWindow({ /* ... */ });
+await createCtxWindow({ /* ... */ });
 const result: AskResult = await cw.ask("Your question");
 ```
 
